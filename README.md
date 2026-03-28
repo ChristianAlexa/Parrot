@@ -1,5 +1,7 @@
 # Parrot
 
+![Parrot](Resources/images/parrot.jpeg)
+
 Local-only voice dictation for macOS. Hold a hotkey, speak, and cleaned-up text is injected into whatever app you're using.
 
 Runs entirely on-device using Whisper (STT) + Llama (LLM cleanup). No cloud, no network calls, full privacy.
