@@ -1,0 +1,69 @@
+.PHONY: build start clean release
+
+APP_NAME := Parrot
+VERSION := 0.1.0
+BUILD_DIR := .build/arm64-apple-macosx/release
+RELEASE_DIR := .build/release-app
+APP_BUNDLE := $(RELEASE_DIR)/$(APP_NAME).app
+
+PLIST := <?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n\
+<plist version=\"1.0\">\n\
+<dict>\n\
+\t<key>CFBundleExecutable</key>\n\
+\t<string>Parrot</string>\n\
+\t<key>CFBundleIdentifier</key>\n\
+\t<string>com.parrot.app</string>\n\
+\t<key>CFBundleName</key>\n\
+\t<string>Parrot</string>\n\
+\t<key>CFBundleDisplayName</key>\n\
+\t<string>Parrot</string>\n\
+\t<key>CFBundleShortVersionString</key>\n\
+\t<string>$(VERSION)</string>\n\
+\t<key>CFBundleVersion</key>\n\
+\t<string>$(VERSION)</string>\n\
+\t<key>CFBundlePackageType</key>\n\
+\t<string>APPL</string>\n\
+\t<key>CFBundleIconFile</key>\n\
+\t<string>AppIcon</string>\n\
+\t<key>LSMinimumSystemVersion</key>\n\
+\t<string>14.0</string>\n\
+\t<key>LSUIElement</key>\n\
+\t<true/>\n\
+\t<key>NSMicrophoneUsageDescription</key>\n\
+\t<string>Parrot needs microphone access to transcribe your speech.</string>\n\
+</dict>\n\
+</plist>
+
+build:
+	swift build
+
+start: build
+	.build/debug/Parrot
+
+clean:
+	swift package clean
+	rm -rf $(RELEASE_DIR)
+
+release:
+	@echo "Building release binary..."
+	swift build -c release
+	@echo "Assembling $(APP_NAME).app..."
+	rm -rf $(APP_BUNDLE)
+	mkdir -p $(APP_BUNDLE)/Contents/MacOS
+	mkdir -p $(APP_BUNDLE)/Contents/Resources
+	mkdir -p $(APP_BUNDLE)/Contents/Frameworks
+	cp .build/release/Parrot $(APP_BUNDLE)/Contents/MacOS/Parrot
+	cp -R $(BUILD_DIR)/whisper.framework $(APP_BUNDLE)/Contents/Frameworks/ 2>/dev/null; true
+	cp -R $(BUILD_DIR)/llama.framework $(APP_BUNDLE)/Contents/Frameworks/ 2>/dev/null; true
+	cp Resources/images/AppIcon.icns $(APP_BUNDLE)/Contents/Resources/AppIcon.icns
+	cp Resources/images/parrot.jpeg $(APP_BUNDLE)/Contents/Resources/parrot.jpeg
+	@printf '$(PLIST)' > $(APP_BUNDLE)/Contents/Info.plist
+	install_name_tool -add_rpath @executable_path/../Frameworks $(APP_BUNDLE)/Contents/MacOS/Parrot 2>/dev/null; true
+	codesign --force --deep --sign - $(APP_BUNDLE)
+	cd $(RELEASE_DIR) && zip -r -y $(APP_NAME)-$(VERSION)-macos-arm64.zip $(APP_NAME).app
+	@echo ""
+	@echo "Done! Release archive:"
+	@echo "  $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.zip"
+	@echo ""
+	@echo "To test: open $(APP_BUNDLE)"
