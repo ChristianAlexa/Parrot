@@ -1,4 +1,4 @@
-.PHONY: build start clean release
+.PHONY: build start clean check release
 
 APP_NAME := Parrot
 VERSION := 0.2.0
@@ -40,6 +40,9 @@ build:
 
 start: build
 	.build/debug/Parrot
+
+check:
+	swift build -c release
 
 clean:
 	swift package clean
