@@ -105,6 +105,8 @@ struct MenuBarContentView: View {
             OutputStyleView()
         case .settings:
             SettingsTabView()
+        case .stats:
+            StatsTabView()
         case .models:
             ModelsTabView()
         case .about:

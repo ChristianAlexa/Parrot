@@ -235,6 +235,11 @@ final class TranscriptionPipeline {
                 }
 
                 textInjector.inject(finalText)
+
+                let wordCount = finalText.split(separator: " ").count
+                let duration = Double(samples.count) / 16000.0
+                DictationStats.record(wordCount: wordCount, durationSeconds: duration, tonePreset: TonePreset.current.rawValue)
+
                 let glass = NSSound(named: "Glass")
                 glass?.volume = 0.2
                 glass?.play()

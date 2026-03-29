@@ -37,6 +37,7 @@ enum SidebarTab: String, CaseIterable {
     case record
     case output
     case settings
+    case stats
     case models
     case about
 
@@ -45,6 +46,7 @@ enum SidebarTab: String, CaseIterable {
         case .record: return "waveform"
         case .output: return "slider.horizontal.3"
         case .settings: return "gearshape"
+        case .stats: return "chart.bar"
         case .models: return "square.stack.3d.down.right"
         case .about: return "info.circle"
         }
@@ -55,6 +57,7 @@ enum SidebarTab: String, CaseIterable {
         case .record: return "Record"
         case .output: return "Tone"
         case .settings: return "System"
+        case .stats: return "Stats"
         case .models: return "Models"
         case .about: return "About"
         }

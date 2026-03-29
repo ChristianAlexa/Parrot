@@ -446,6 +446,129 @@ struct AboutTabView: View {
     }
 }
 
+// MARK: - Stats Tab
+
+struct StatsTabView: View {
+    @State private var stats = DictationStats.load()
+    @State private var showResetConfirmation: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            GroupBox("Usage") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Spacer()
+                        Button(action: { copyStats() }) {
+                            Image(systemName: "doc.on.clipboard")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    statRow("Total dictations", value: "\(stats.totalDictations)")
+                    statRow("Total words dictated", value: "\(stats.totalWords)")
+                    statRow("Total recording time", value: formattedDuration)
+                    statRow("Average WPM", value: formattedWPM)
+                    statRow("Most-used tone", value: mostUsedTone)
+                    statRow("Estimated time saved", value: formattedTimeSaved)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+            }
+
+            if stats.totalDictations > 0 {
+                HStack {
+                    Spacer()
+                    if showResetConfirmation {
+                        HStack(spacing: 6) {
+                            Text("Reset all stats?")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Button("Yes") {
+                                DictationStats.reset()
+                                stats = DictationStats.load()
+                                showResetConfirmation = false
+                            }
+                            .font(.caption2)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.red)
+                            Button("No") {
+                                showResetConfirmation = false
+                            }
+                            .font(.caption2)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Button("Reset All") {
+                            showResetConfirmation = true
+                        }
+                        .font(.caption2)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.red)
+                    }
+                }
+            }
+        }
+        .padding()
+        .onAppear { stats = DictationStats.load() }
+    }
+
+    private func statRow(_ label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.caption)
+                .fontWeight(.medium)
+        }
+    }
+
+    private func copyStats() {
+        let text = """
+        Parrot Stats
+        Dictations: \(stats.totalDictations)
+        Words: \(stats.totalWords)
+        Recording time: \(formattedDuration)
+        Avg WPM: \(formattedWPM)
+        Most-used tone: \(mostUsedTone)
+        Time saved: \(formattedTimeSaved)
+        """
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    private var formattedDuration: String {
+        let total = Int(stats.totalRecordingSeconds)
+        if total < 60 { return "\(total)s" }
+        if total < 3600 { return "\(total / 60)m \(total % 60)s" }
+        return "\(total / 3600)h \(total % 3600 / 60)m"
+    }
+
+    private var formattedWPM: String {
+        guard stats.totalRecordingSeconds > 0 else { return "—" }
+        let wpm = Double(stats.totalWords) / (stats.totalRecordingSeconds / 60.0)
+        return String(format: "%.0f", wpm)
+    }
+
+    private var mostUsedTone: String {
+        guard let top = stats.toneUsage.max(by: { $0.value < $1.value }) else { return "—" }
+        return TonePreset(rawValue: top.key)?.displayName ?? top.key.capitalized
+    }
+
+    private var formattedTimeSaved: String {
+        guard stats.totalWords > 0 else { return "—" }
+        let typingMinutes = Double(stats.totalWords) / 40.0
+        let dictationMinutes = stats.totalRecordingSeconds / 60.0
+        let savedMinutes = max(0, typingMinutes - dictationMinutes)
+        if savedMinutes < 1 { return "< 1 min" }
+        if savedMinutes < 60 { return "\(Int(savedMinutes)) min" }
+        return String(format: "%.1f hrs", savedMinutes / 60.0)
+    }
+}
+
 // MARK: - Shared Components
 
 struct CleanupRuleToggle: View {
