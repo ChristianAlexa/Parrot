@@ -78,3 +78,7 @@ Hold Hotkey → Audio Capture → Whisper STT → LLM Cleanup → Paste into Act
 ```
 
 All inference runs locally via whisper.cpp and llama.cpp with Metal GPU acceleration.
+
+## License
+
+[Apache License 2.0](LICENSE)
