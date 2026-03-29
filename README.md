@@ -79,6 +79,22 @@ Hold Hotkey → Audio Capture → Whisper STT → LLM Cleanup → Paste into Act
 
 All inference runs locally via whisper.cpp and llama.cpp with Metal GPU acceleration.
 
+## Model Licenses
+
+The Parrot application code is Apache 2.0 licensed, but the downloadable models have their own licenses:
+
+- **Whisper models** — [MIT License](https://github.com/openai/whisper/blob/main/LICENSE). No restrictions beyond attribution.
+- **Llama 3.1 models** — [Meta Llama 3.1 Community License](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE). Key terms:
+  - You must comply with Meta's [Acceptable Use Policy](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/USE_POLICY.md)
+  - A separate license from Meta is required if your product has 700M+ monthly active users
+  - Attribution: "Built with Llama" is required for derivative works and services
+
+By downloading models through Parrot, you agree to their respective license terms.
+
+## Privacy
+
+Parrot runs entirely on your device. See [PRIVACY.md](PRIVACY.md) for the full privacy policy.
+
 ## License
 
 [Apache License 2.0](LICENSE)
