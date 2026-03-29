@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 struct RecommendedModelCard: View {
     let model: RecommendedModel
     @Binding var selectedPath: String

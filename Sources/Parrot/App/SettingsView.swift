@@ -130,6 +130,7 @@ struct OutputStyleView: View {
 
 // MARK: - Record Tab
 
+@MainActor
 struct RecordTabView: View {
     @Bindable private var deviceManager = sharedAudioDeviceManager
     @State private var refreshRotation: Double = 0

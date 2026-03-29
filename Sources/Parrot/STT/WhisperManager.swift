@@ -42,9 +42,10 @@ final class WhisperManager {
 
         // Run the heavy C model load on a dedicated thread to avoid blocking
         // the Swift cooperative thread pool during the ~1.6GB file read + Metal init.
+        let paramsCopy = params
         let ctx: OpaquePointer = try await withCheckedThrowingContinuation { continuation in
             Thread.detachNewThread {
-                if let ctx = whisper_init_from_file_with_params(path, params) {
+                if let ctx = whisper_init_from_file_with_params(path, paramsCopy) {
                     continuation.resume(returning: ctx)
                 } else {
                     continuation.resume(throwing: WhisperError.transcriptionFailed("Failed to initialize Whisper context from: \(path)"))

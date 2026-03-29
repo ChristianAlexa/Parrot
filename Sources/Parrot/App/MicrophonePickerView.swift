@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 struct MicrophonePickerView: View {
     @Bindable var deviceManager: AudioDeviceManager
 
