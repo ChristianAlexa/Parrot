@@ -186,6 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !hotkeyManager.start() {
             logger.warning("Hotkey setup failed — accessibility permission may be needed")
             ActivityLog.shared.log(.warning, category: "App", message: "Hotkey setup failed — accessibility permission may be needed")
+            sharedAppState.status = .error("Accessibility permission required — grant in System Settings → Privacy & Security → Accessibility, then relaunch Parrot")
         }
     }
 

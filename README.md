@@ -20,6 +20,19 @@ make start
 
 On first launch, grant **Accessibility** and **Microphone** permissions when prompted.
 
+## Install
+
+To install the `.app` bundle (from a [release](../../releases) or `make release`):
+
+1. Move `Parrot.app` to `/Applications`
+2. If macOS blocks the app, remove the quarantine flag:
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Parrot.app
+   ```
+   Or right-click the app → **Open** to bypass Gatekeeper.
+3. Grant **Accessibility** and **Microphone** permissions when prompted
+4. The app appears as an icon in the **menu bar** (top-right) — it does not appear in the Dock
+
 ## Usage
 
 1. The app lives in your **menu bar** (top-right, near WiFi/battery)
@@ -90,6 +103,24 @@ The Parrot application code is Apache 2.0 licensed, but the downloadable models 
   - Attribution: "Built with Llama" is required for derivative works and services
 
 By downloading models through Parrot, you agree to their respective license terms.
+
+## Troubleshooting
+
+**App won't launch / "unidentified developer" warning**
+Remove the quarantine attribute and try again:
+```bash
+xattr -dr com.apple.quarantine /Applications/Parrot.app
+```
+
+**Hotkey not working (Right Option does nothing)**
+- Open **System Settings → Privacy & Security → Accessibility**
+- Make sure **Parrot** is listed and toggled **on**
+- If you previously used `make start`, the debug binary gets a separate Accessibility grant — the `.app` bundle needs its own
+- After granting permission, **quit and relaunch** Parrot
+
+**Menu bar icon not visible**
+- Parrot is a menu bar-only app — look in the top-right area (near WiFi/battery), not the Dock
+- If you use a menu bar manager (Bartender, Hidden Bar, Ice, etc.), it may auto-hide new status items. Check the app's hidden items list.
 
 ## Privacy
 
