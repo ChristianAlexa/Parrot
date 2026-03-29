@@ -118,6 +118,13 @@ xattr -dr com.apple.quarantine /Applications/Parrot.app
 - If you previously used `make start`, the debug binary gets a separate Accessibility grant — the `.app` bundle needs its own
 - After granting permission, **quit and relaunch** Parrot
 
+**Accessibility prompt keeps appearing after updating the app**
+Each rebuild produces a new ad-hoc code signature, which invalidates the previous Accessibility grant. Reset and re-grant:
+```bash
+tccutil reset Accessibility com.parrot.app
+```
+Then relaunch Parrot and approve the permission when prompted.
+
 **Menu bar icon not visible**
 - Parrot is a menu bar-only app — look in the top-right area (near WiFi/battery), not the Dock
 - If you use a menu bar manager (Bartender, Hidden Bar, Ice, etc.), it may auto-hide new status items. Check the app's hidden items list.
