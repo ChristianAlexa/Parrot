@@ -29,6 +29,7 @@ struct ParrotApp: App {
     }
 }
 
+@MainActor
 struct MenuBarContentView: View {
     @State private var selectedTab: SidebarTab = .record
 
