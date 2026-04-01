@@ -13,6 +13,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Build release
         run: make release
@@ -20,8 +22,10 @@ jobs:
       - name: Extract tag annotation
         id: tag_message
         run: |
-          # Get annotated tag message; fall back to auto-generated notes if lightweight tag
-          MSG=$(git tag -l --format='%(contents:body)' "${GITHUB_REF_NAME}")
+          # Read the tag object directly — this returns only the tag
+          # annotation, never the underlying commit message.
+          # Falls back to auto-generated notes for lightweight tags.
+          MSG=$(git cat-file tag "${GITHUB_REF_NAME}" 2>/dev/null | sed '1,/^$/d')
           if [ -z "$MSG" ]; then
             echo "use_auto=true" >> "$GITHUB_OUTPUT"
           else
