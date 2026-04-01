@@ -1,4 +1,4 @@
-.PHONY: build start clean check release
+.PHONY: build start clean check release tag
 
 APP_NAME := Parrot
 VERSION := 0.3.0
@@ -70,3 +70,15 @@ release:
 	@echo "  $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.zip"
 	@echo ""
 	@echo "To test: open $(APP_BUNDLE)"
+
+tag:
+	@if git rev-parse "v$(VERSION)" >/dev/null 2>&1; then \
+		echo "Error: tag v$(VERSION) already exists"; exit 1; \
+	fi
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: working tree is dirty — commit first"; exit 1; \
+	fi
+	git tag -a "v$(VERSION)"
+	git push origin "v$(VERSION)"
+	@echo ""
+	@echo "Tagged and pushed v$(VERSION) — release workflow started"
