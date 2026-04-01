@@ -21,7 +21,7 @@ jobs:
         id: tag_message
         run: |
           # Get annotated tag message; fall back to auto-generated notes if lightweight tag
-          MSG=$(git tag -l --format='%(contents)' "${GITHUB_REF_NAME}")
+          MSG=$(git tag -l --format='%(contents:body)' "${GITHUB_REF_NAME}")
           if [ -z "$MSG" ]; then
             echo "use_auto=true" >> "$GITHUB_OUTPUT"
           else
