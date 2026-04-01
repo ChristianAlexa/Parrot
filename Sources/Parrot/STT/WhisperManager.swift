@@ -8,14 +8,22 @@ final class WhisperManager {
     private var context: OpaquePointer?
     private let cancelFlag = OSAllocatedUnfairLock(initialState: false)
 
+    var isModelLoaded: Bool { context != nil }
+
     func cancelTranscription() {
         cancelFlag.withLock { $0 = true }
     }
 
-    deinit {
+    func unloadModel() {
+        cancelTranscription()
         if let context {
             whisper_free(context)
+            self.context = nil
         }
+    }
+
+    deinit {
+        unloadModel()
     }
 
     func loadModel(at path: String) async throws {

@@ -1,7 +1,7 @@
 .PHONY: build start clean check release
 
 APP_NAME := Parrot
-VERSION := 0.2.0
+VERSION := 0.3.0
 BUILD_DIR := .build/arm64-apple-macosx/release
 RELEASE_DIR := .build/release-app
 APP_BUNDLE := $(RELEASE_DIR)/$(APP_NAME).app

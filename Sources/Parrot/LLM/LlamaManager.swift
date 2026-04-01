@@ -16,10 +16,15 @@ final class LlamaManager {
         cancelFlag.withLock { $0 = true }
     }
 
+    func unloadModel() {
+        cancelInference()
+        if let sampler { llama_sampler_free(sampler); self.sampler = nil }
+        if let context { llama_free(context); self.context = nil }
+        if let model { llama_model_free(model); self.model = nil }
+    }
+
     deinit {
-        if let sampler { llama_sampler_free(sampler) }
-        if let context { llama_free(context) }
-        if let model { llama_model_free(model) }
+        unloadModel()
     }
 
     func loadModel(at path: String) async throws {

@@ -14,9 +14,14 @@ final class TranscriptionPipeline {
     private var modelLoadTask: Task<Void, Never>?
     private var stopRequested = false
     private var isTestMode = false
+    private var isReloading = false
+    private var idleTimer: Timer?
+    private static let idleTimeout: TimeInterval = 5 * 60
+    private var testStartObserver: Any?
+    private var testStopObserver: Any?
 
     init() {
-        NotificationCenter.default.addObserver(
+        testStartObserver = NotificationCenter.default.addObserver(
             forName: .testRecordingStarted,
             object: nil,
             queue: .main
@@ -26,7 +31,7 @@ final class TranscriptionPipeline {
             }
         }
 
-        NotificationCenter.default.addObserver(
+        testStopObserver = NotificationCenter.default.addObserver(
             forName: .testRecordingStopped,
             object: nil,
             queue: .main
@@ -35,6 +40,47 @@ final class TranscriptionPipeline {
                 self?.stopTestRecording()
             }
         }
+    }
+
+    deinit {
+        if let testStartObserver { NotificationCenter.default.removeObserver(testStartObserver) }
+        if let testStopObserver { NotificationCenter.default.removeObserver(testStopObserver) }
+        idleTimer?.invalidate()
+    }
+
+    // MARK: - Idle Timer
+
+    private func resetIdleTimer() {
+        idleTimer?.invalidate()
+        idleTimer = Timer.scheduledTimer(withTimeInterval: Self.idleTimeout, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.unloadModelsIfIdle()
+            }
+        }
+    }
+
+    private func cancelIdleTimer() {
+        idleTimer?.invalidate()
+        idleTimer = nil
+    }
+
+    private func unloadModelsIfIdle() {
+        switch sharedAppState.status {
+        case .idle, .error:
+            break
+        case .recording, .processing:
+            resetIdleTimer()
+            return
+        }
+
+        logger.info("Idle timeout reached — unloading models to free memory")
+        ActivityLog.shared.log(.info, category: "Pipeline", message: "Idle timeout — unloading models to free memory")
+
+        whisperManager.unloadModel()
+        llamaManager.unloadModel()
+        sharedAppState.isModelsLoaded = false
+        sharedAppState.modelLoadingProgress = "Models unloaded (will reload on next use)"
+        idleTimer = nil
     }
 
     func loadModels() {
@@ -106,9 +152,12 @@ final class TranscriptionPipeline {
                 progressMessage = "LLM model not configured"
             }
 
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 sharedAppState.isModelsLoaded = allLoaded
                 sharedAppState.modelLoadingProgress = allLoaded ? "" : progressMessage
+                if allLoaded {
+                    self?.resetIdleTimer()
+                }
             }
             logger.info("Model loading complete (whisper: \(whisperLoaded), llm: \(llamaLoaded))")
             ActivityLog.shared.log(.info, category: "Pipeline", message: "Model loading complete (whisper: \(whisperLoaded), llm: \(llamaLoaded))")
@@ -118,12 +167,6 @@ final class TranscriptionPipeline {
     func startRecording() {
         if sharedAppState.isTestModeActive {
             startTestRecording()
-            return
-        }
-
-        guard sharedAppState.isModelsLoaded else {
-            logger.warning("Recording attempted before models are loaded")
-            ActivityLog.shared.log(.warning, category: "Pipeline", message: "Recording attempted before models are loaded")
             return
         }
 
@@ -137,6 +180,55 @@ final class TranscriptionPipeline {
             return
         }
 
+        cancelIdleTimer()
+
+        if !sharedAppState.isModelsLoaded {
+            reloadAndRecord()
+            return
+        }
+
+        beginRecording()
+    }
+
+    private func reloadAndRecord() {
+        isReloading = true
+        sharedAppState.status = .processing
+        sharedAppState.modelLoadingProgress = "Reloading models..."
+        NSSound(named: "Tink")?.play()
+        loadModels()
+
+        recordingTask = Task {
+            await modelLoadTask?.value
+
+            guard !Task.isCancelled else {
+                isReloading = false
+                sharedAppState.status = .idle
+                resetIdleTimer()
+                return
+            }
+
+            guard sharedAppState.isModelsLoaded else {
+                logger.error("Model reload failed — cannot start recording")
+                ActivityLog.shared.log(.error, category: "Pipeline", message: "Model reload failed — cannot start recording")
+                isReloading = false
+                sharedAppState.status = .error("Model reload failed")
+                return
+            }
+
+            isReloading = false
+
+            if stopRequested {
+                // User released hotkey during reload — don't record
+                sharedAppState.status = .idle
+                resetIdleTimer()
+                return
+            }
+
+            beginRecording()
+        }
+    }
+
+    private func beginRecording() {
         stopRequested = false
         sharedAppState.status = .recording
 
@@ -163,6 +255,12 @@ final class TranscriptionPipeline {
     func stopRecordingAndProcess() {
         if isTestMode {
             stopTestRecording()
+            return
+        }
+
+        if isReloading {
+            // User released hotkey before reload finished — cancel
+            stopRequested = true
             return
         }
 
@@ -244,6 +342,7 @@ final class TranscriptionPipeline {
                 glass?.volume = 0.2
                 glass?.play()
                 sharedAppState.status = .idle
+                resetIdleTimer()
             } catch {
                 logger.error("Processing failed: \(error.localizedDescription)")
                 ActivityLog.shared.log(.error, category: "Pipeline", message: "Processing failed: \(error.localizedDescription)")
@@ -340,6 +439,7 @@ final class TranscriptionPipeline {
                     userInfo: ["text": finalText]
                 )
                 sharedAppState.status = .idle
+                resetIdleTimer()
             } catch {
                 NotificationCenter.default.post(
                     name: .testTranscriptionError,
