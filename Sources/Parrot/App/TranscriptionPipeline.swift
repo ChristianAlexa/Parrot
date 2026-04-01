@@ -15,8 +15,6 @@ final class TranscriptionPipeline {
     private var stopRequested = false
     private var isTestMode = false
     private var isReloading = false
-    private var idleTimer: Timer?
-    private static let idleTimeout: TimeInterval = 5 * 60
     private var testStartObserver: Any?
     private var testStopObserver: Any?
 
@@ -45,42 +43,27 @@ final class TranscriptionPipeline {
     deinit {
         if let testStartObserver { NotificationCenter.default.removeObserver(testStartObserver) }
         if let testStopObserver { NotificationCenter.default.removeObserver(testStopObserver) }
-        idleTimer?.invalidate()
     }
 
-    // MARK: - Idle Timer
+    // MARK: - Model Lifecycle
 
-    private func resetIdleTimer() {
-        idleTimer?.invalidate()
-        idleTimer = Timer.scheduledTimer(withTimeInterval: Self.idleTimeout, repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.unloadModelsIfIdle()
-            }
-        }
-    }
+    func unloadModels() {
+        guard sharedAppState.isModelsLoaded else { return }
 
-    private func cancelIdleTimer() {
-        idleTimer?.invalidate()
-        idleTimer = nil
-    }
-
-    private func unloadModelsIfIdle() {
         switch sharedAppState.status {
         case .idle, .error:
             break
         case .recording, .processing:
-            resetIdleTimer()
             return
         }
 
-        logger.info("Idle timeout reached — unloading models to free memory")
-        ActivityLog.shared.log(.info, category: "Pipeline", message: "Idle timeout — unloading models to free memory")
+        logger.info("Unloading models to free memory")
+        ActivityLog.shared.log(.info, category: "Pipeline", message: "Unloading models to free memory")
 
         whisperManager.unloadModel()
         llamaManager.unloadModel()
         sharedAppState.isModelsLoaded = false
-        sharedAppState.modelLoadingProgress = "Models unloaded (will reload on next use)"
-        idleTimer = nil
+        sharedAppState.modelLoadingProgress = "Models unloaded"
     }
 
     func loadModels() {
@@ -152,12 +135,9 @@ final class TranscriptionPipeline {
                 progressMessage = "LLM model not configured"
             }
 
-            await MainActor.run { [weak self] in
+            await MainActor.run {
                 sharedAppState.isModelsLoaded = allLoaded
                 sharedAppState.modelLoadingProgress = allLoaded ? "" : progressMessage
-                if allLoaded {
-                    self?.resetIdleTimer()
-                }
             }
             logger.info("Model loading complete (whisper: \(whisperLoaded), llm: \(llamaLoaded))")
             ActivityLog.shared.log(.info, category: "Pipeline", message: "Model loading complete (whisper: \(whisperLoaded), llm: \(llamaLoaded))")
@@ -180,8 +160,6 @@ final class TranscriptionPipeline {
             return
         }
 
-        cancelIdleTimer()
-
         if !sharedAppState.isModelsLoaded {
             reloadAndRecord()
             return
@@ -203,7 +181,6 @@ final class TranscriptionPipeline {
             guard !Task.isCancelled else {
                 isReloading = false
                 sharedAppState.status = .idle
-                resetIdleTimer()
                 return
             }
 
@@ -220,7 +197,6 @@ final class TranscriptionPipeline {
             if stopRequested {
                 // User released hotkey during reload — don't record
                 sharedAppState.status = .idle
-                resetIdleTimer()
                 return
             }
 
@@ -342,7 +318,7 @@ final class TranscriptionPipeline {
                 glass?.volume = 0.2
                 glass?.play()
                 sharedAppState.status = .idle
-                resetIdleTimer()
+
             } catch {
                 logger.error("Processing failed: \(error.localizedDescription)")
                 ActivityLog.shared.log(.error, category: "Pipeline", message: "Processing failed: \(error.localizedDescription)")
@@ -439,7 +415,7 @@ final class TranscriptionPipeline {
                     userInfo: ["text": finalText]
                 )
                 sharedAppState.status = .idle
-                resetIdleTimer()
+
             } catch {
                 NotificationCenter.default.post(
                     name: .testTranscriptionError,

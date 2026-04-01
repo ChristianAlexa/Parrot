@@ -199,9 +199,36 @@ struct RecordTabView: View {
 
             // Test section
             VStack(alignment: .leading, spacing: 8) {
-                Text("Test")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Text("Test")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    if !testOutput.isEmpty {
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(testOutput, forType: .string)
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Copy to clipboard")
+
+                        Button {
+                            testOutput = ""
+                        } label: {
+                            Image(systemName: "xmark.circle")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Clear output")
+                    }
+                }
 
                 Text(testOutput.isEmpty ? "Hold the button below to test recording and see output here." : testOutput)
                     .font(.system(.caption, design: .monospaced))

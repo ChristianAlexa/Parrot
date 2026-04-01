@@ -21,6 +21,31 @@ struct StatusIndicatorView: View {
                 .foregroundStyle(.primary)
 
             subtitleText
+
+            if appState.status == .idle {
+                Button {
+                    if appState.isModelsLoaded {
+                        NotificationCenter.default.post(name: .unloadModelsRequested, object: nil)
+                    } else {
+                        NotificationCenter.default.post(name: .loadModelsRequested, object: nil)
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: appState.isModelsLoaded ? "arrow.down.to.line" : "arrow.up.to.line")
+                            .font(.system(size: 10))
+                        Text(appState.isModelsLoaded ? "Unload Models" : "Load Models")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.primary.opacity(0.04))
+                    )
+                }
+                .buttonStyle(.plain)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)

@@ -7,6 +7,8 @@ extension Notification.Name {
     static let testRecordingStopped = Notification.Name("testRecordingStopped")
     static let testTranscriptionResult = Notification.Name("testTranscriptionResult")
     static let testTranscriptionError = Notification.Name("testTranscriptionError")
+    static let unloadModelsRequested = Notification.Name("unloadModelsRequested")
+    static let loadModelsRequested = Notification.Name("loadModelsRequested")
 }
 
 @MainActor
@@ -196,6 +198,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func observeSettingsChanges() {
         NotificationCenter.default.addObserver(
             forName: .inferenceSettingsDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.pipeline.loadModels()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .unloadModelsRequested,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.pipeline.unloadModels()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .loadModelsRequested,
             object: nil,
             queue: .main
         ) { [weak self] _ in
