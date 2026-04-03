@@ -145,11 +145,6 @@ final class TranscriptionPipeline {
     }
 
     func startRecording() {
-        if sharedAppState.isTestModeActive {
-            startTestRecording()
-            return
-        }
-
         switch sharedAppState.status {
         case .idle, .error:
             break // OK to start recording
