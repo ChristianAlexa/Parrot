@@ -284,6 +284,8 @@ struct RecordTabView: View {
                 if newStatus == .recording {
                     testOutput = ""
                     isTestRecording = true
+                } else if newStatus != .processing && isTestRecording {
+                    isTestRecording = false
                 }
             }
         }
