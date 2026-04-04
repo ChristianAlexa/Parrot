@@ -40,6 +40,8 @@ jobs:
       - name: Upload release
         uses: softprops/action-gh-release@v2
         with:
-          files: .build/release-app/Parrot-*-macos-arm64.zip
+          files: |
+            .build/release-app/Parrot-*-macos-arm64.zip
+            .build/release-app/Parrot-*-macos-arm64.dmg
           body: ${{ steps.tag_message.outputs.use_auto == 'true' && '' || steps.tag_message.outputs.body }}
           generate_release_notes: ${{ steps.tag_message.outputs.use_auto == 'true' }}
