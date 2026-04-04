@@ -11,6 +11,8 @@ final class LlamaManager {
     private static var backendInitialized = false
     private let maxTokens: Int32 = 512
     private let cancelFlag = OSAllocatedUnfairLock(initialState: false)
+    /// Guards model/context/sampler pointers so unloadModel waits for inference to finish.
+    private let inferenceLock = NSLock()
 
     func cancelInference() {
         cancelFlag.withLock { $0 = true }
@@ -18,6 +20,8 @@ final class LlamaManager {
 
     func unloadModel() {
         cancelInference()
+        inferenceLock.lock()
+        defer { inferenceLock.unlock() }
         if let sampler { llama_sampler_free(sampler); self.sampler = nil }
         if let context { llama_free(context); self.context = nil }
         if let model { llama_model_free(model); self.model = nil }
@@ -35,9 +39,10 @@ final class LlamaManager {
             throw LlamaError.modelNotFound(path)
         }
 
-        // Signal any in-flight inference thread to stop, then give it time to exit
+        // Signal any in-flight inference thread to stop, then wait for it to finish
         cancelInference()
-        try await Task.sleep(for: .milliseconds(10))
+        inferenceLock.lock()
+        defer { inferenceLock.unlock() }
 
         // Free any previously loaded model
         if let sampler { llama_sampler_free(sampler); self.sampler = nil }
@@ -101,11 +106,14 @@ final class LlamaManager {
         llama_sampler_reset(sampler)
 
         let cancelFlag = self.cancelFlag
+        let inferenceLock = self.inferenceLock
         let result: String = try await withCheckedThrowingContinuation { continuation in
             nonisolated(unsafe) let model = model
             nonisolated(unsafe) let context = context
             nonisolated(unsafe) let sampler = sampler
             Thread.detachNewThread { [logger, maxTokens] in
+                inferenceLock.lock()
+                defer { inferenceLock.unlock() }
                 let vocab = llama_model_get_vocab(model)
 
                 // Tokenize the prompt
