@@ -15,10 +15,8 @@ rm -rf "$STAGING"
 mkdir -p "$STAGING"
 cp -R "$APP_BUNDLE" "$STAGING/"
 
-# Add README and setup script
+# Add README
 cp "$SCRIPT_DIR/README.txt" "$STAGING/README.txt"
-cp "$SCRIPT_DIR/Setup.command" "$STAGING/Setup.command"
-chmod +x "$STAGING/Setup.command"
 
 # Create a read-write DMG so we can set Finder view options
 TEMP_DMG="$(dirname "$OUTPUT_DMG")/temp.dmg"
@@ -52,23 +50,20 @@ tell application "Finder"
         set current view of container window to icon view
         set toolbar visible of container window to false
         set statusbar visible of container window to false
-        set bounds of container window to {200, 200, 680, 500}
+        set bounds of container window to {200, 200, 680, 440}
         set theViewOptions to icon view options of container window
         set arrangement of theViewOptions to not arranged
         set icon size of theViewOptions to 80
         delay 1
-        -- top row: Parrot → Applications (drag to install)
-        -- bottom row: Setup.command, README
+        -- position items: README (left), Parrot (center), Applications (right)
         repeat with f in (get every item of container window)
             set n to name of f
-            if n starts with "Parrot" then
-                set position of f to {160, 100}
+            if n is "README.txt" then
+                set position of f to {120, 120}
+            else if n starts with "Parrot" then
+                set position of f to {260, 120}
             else if n is "Applications" then
-                set position of f to {360, 100}
-            else if n is "Setup.command" then
-                set position of f to {160, 220}
-            else if n is "README.txt" then
-                set position of f to {360, 220}
+                set position of f to {400, 120}
             end if
         end repeat
         close
