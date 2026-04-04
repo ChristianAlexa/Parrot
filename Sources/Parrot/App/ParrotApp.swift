@@ -164,12 +164,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func observeSetupCompletion() {
-        // Re-check when setup state changes; start hotkey + load models once complete
         withObservationTracking {
             _ = sharedAppState.currentSetupStep
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self else { return }
+        } onChange: {
+            Task { @MainActor [self] in
                 if sharedAppState.currentSetupStep == .complete {
                     self.setupHotkey()
                     self.pipeline.loadModels()
