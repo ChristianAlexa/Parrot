@@ -144,6 +144,7 @@ struct SetupFlowView: View {
             }
 
             Button {
+                NSApp.keyWindow?.orderOut(nil)
                 PermissionsManager.shared.requestAccessibilityIfNeeded()
             } label: {
                 Text("Open System Settings")
@@ -157,12 +158,21 @@ struct SetupFlowView: View {
             Text("After granting access, this screen will update automatically.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+
+            Button {
+                PermissionsManager.shared.resetAccessibility()
+            } label: {
+                Text("Reset Permission")
+                    .font(.caption2)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
         .onAppear {
             // Only reset accessibility TCC entry on a truly fresh install
-            // (no models configured yet = user has never completed setup)
-            if whisperModelPath.isEmpty && llamaModelPath.isEmpty {
+            // when permission hasn't already been granted
+            if whisperModelPath.isEmpty && llamaModelPath.isEmpty && !AXIsProcessTrusted() {
                 PermissionsManager.shared.resetAccessibility()
             }
         }
@@ -191,6 +201,7 @@ struct SetupFlowView: View {
 
             if AVCaptureDevice.authorizationStatus(for: .audio) == .denied {
                 Button {
+                    NSApp.keyWindow?.orderOut(nil)
                     PermissionsManager.shared.openMicrophoneSettings()
                 } label: {
                     Text("Open System Settings")
@@ -207,6 +218,7 @@ struct SetupFlowView: View {
                     .multilineTextAlignment(.center)
             } else {
                 Button {
+                    NSApp.keyWindow?.orderOut(nil)
                     Task {
                         _ = await PermissionsManager.shared.requestMicrophoneAccess()
                         appState.refreshSetupState()
@@ -347,8 +359,9 @@ struct SetupFlowView: View {
         let url = Bundle.main.bundleURL
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        task.arguments = [url.path]
+        task.arguments = ["-n", url.path]
         try? task.run()
+        task.waitUntilExit()
         _exit(0)
     }
 
