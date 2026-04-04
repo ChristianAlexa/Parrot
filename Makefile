@@ -1,4 +1,4 @@
-.PHONY: build start clean check release tag
+.PHONY: build start clean check test release tag
 
 APP_NAME := Parrot
 VERSION := 0.3.9
@@ -53,6 +53,9 @@ start: build
 	@codesign --force --deep --sign - .build/dev-app/Parrot.app 2>/dev/null; true
 	open .build/dev-app/Parrot.app
 
+test:
+	swift test
+
 check:
 	swift build -c release
 
@@ -60,7 +63,7 @@ clean:
 	swift package clean
 	rm -rf $(RELEASE_DIR)
 
-release:
+release: test
 	@echo "Building release binary..."
 	swift build -c release
 	@echo "Assembling $(APP_NAME).app..."
@@ -84,7 +87,7 @@ release:
 	@echo ""
 	@echo "To test: open $(APP_BUNDLE)"
 
-tag:
+tag: test
 	@if git rev-parse "v$(VERSION)" >/dev/null 2>&1; then \
 		echo "Error: tag v$(VERSION) already exists"; exit 1; \
 	fi
