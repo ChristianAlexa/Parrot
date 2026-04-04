@@ -18,7 +18,10 @@ cp -R "$APP_BUNDLE" "$STAGING/"
 # Add README
 cp "$SCRIPT_DIR/README.txt" "$STAGING/README.txt"
 
-# Create a read-write DMG so we can set Finder view options
+# Add Applications symlink for drag-to-install (works headless, unlike Finder aliases)
+ln -s /Applications "$STAGING/Applications"
+
+# Create a read-write DMG so we can set the volume icon
 TEMP_DMG="$(dirname "$OUTPUT_DMG")/temp.dmg"
 rm -f "$TEMP_DMG"
 hdiutil create -volname "$VOL_NAME" \
@@ -26,23 +29,20 @@ hdiutil create -volname "$VOL_NAME" \
     -ov -format UDRW \
     "$TEMP_DMG"
 
-# Mount and configure Finder window
+# Mount and set volume icon
 MOUNT_DIR=$(hdiutil attach -readwrite -noverify "$TEMP_DMG" | grep '/Volumes/' | sed 's/.*\/Volumes/\/Volumes/')
-ACTUAL_VOL_NAME=$(basename "$MOUNT_DIR")
 
-# Set the volume icon
 cp "$APP_BUNDLE/Contents/Resources/AppIcon.icns" "$MOUNT_DIR/.VolumeIcon.icns"
 SetFile -a C "$MOUNT_DIR" 2>/dev/null || true
 
-# Add Applications alias for drag-to-install (Finder alias preserves folder icon)
-osascript -e 'tell application "Finder" to make alias file to POSIX file "/Applications" at POSIX file "'"$MOUNT_DIR"'"'
-sleep 2
+# Set Finder view options via AppleScript (only works with a GUI session)
+if [ -n "$DISPLAY" ] || [[ "$OSTYPE" == "darwin"* && -z "$CI" ]]; then
+    ACTUAL_VOL_NAME=$(basename "$MOUNT_DIR")
 
-# Kill any cached .DS_Store
-rm -f "$MOUNT_DIR/.DS_Store"
+    # Kill any cached .DS_Store
+    rm -f "$MOUNT_DIR/.DS_Store"
 
-# Set window view and icon positions via AppleScript
-/usr/bin/osascript <<EOF
+    /usr/bin/osascript <<EOF
 tell application "Finder"
     tell disk "$ACTUAL_VOL_NAME"
         open
@@ -75,9 +75,10 @@ tell application "Finder"
 end tell
 EOF
 
-# Let Finder write the .DS_Store
-sync
-sleep 2
+    # Let Finder write the .DS_Store
+    sync
+    sleep 2
+fi
 
 # Unmount
 hdiutil detach "$MOUNT_DIR" -quiet
