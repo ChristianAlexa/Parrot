@@ -307,15 +307,14 @@ final class TranscriptionPipeline {
                     finalText = rawTranscript
                 }
 
-                if sharedAppState.isTestModeActive {
-                    NotificationCenter.default.post(
-                        name: .testTranscriptionResult,
-                        object: nil,
-                        userInfo: ["text": finalText]
-                    )
-                } else {
+                if !isTestMode {
                     textInjector.inject(finalText)
                 }
+                NotificationCenter.default.post(
+                    name: .testTranscriptionResult,
+                    object: nil,
+                    userInfo: ["text": finalText]
+                )
 
                 let wordCount = finalText.split(separator: " ").count
                 let duration = Double(samples.count) / 16000.0
