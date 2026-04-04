@@ -1,15 +1,10 @@
-Parrot - Local Speech-to-Text
+Parrot — Local Speech-to-Text
 
 INSTALL
-  1. Drag Parrot.app to the Applications folder.
-  2. Open Parrot — macOS will block it since it's not notarized.
-  3. Open System Settings → Privacy & Security, scroll down,
-     and click "Open Anyway" next to the Parrot message.
-
-  Alternative: run this in Terminal before launching:
-    xattr -cr /Applications/Parrot.app
+  1. Drag Parrot.app to Applications.
+  2. Run in Terminal:  xattr -cr /Applications/Parrot.app
+  3. Launch Parrot. It will guide you through setup.
 
 UNINSTALL
-  Delete Parrot.app from /Applications.
-  Parrot stores its data in ~/Library/Application Support/Parrot/ —
-  delete that folder to remove all models and settings.
+  Delete /Applications/Parrot.app.
+  Remove ~/Library/Application Support/Parrot/ to clear models and settings.
