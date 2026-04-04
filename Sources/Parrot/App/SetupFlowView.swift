@@ -160,7 +160,11 @@ struct SetupFlowView: View {
         }
         .frame(maxWidth: .infinity)
         .onAppear {
-            PermissionsManager.shared.resetAccessibility()
+            // Only reset accessibility TCC entry on a truly fresh install
+            // (no models configured yet = user has never completed setup)
+            if whisperModelPath.isEmpty && llamaModelPath.isEmpty {
+                PermissionsManager.shared.resetAccessibility()
+            }
         }
     }
 
