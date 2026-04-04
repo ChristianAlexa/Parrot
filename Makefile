@@ -64,12 +64,10 @@ release:
 	@printf '$(PLIST)' > $(APP_BUNDLE)/Contents/Info.plist
 	install_name_tool -add_rpath @executable_path/../Frameworks $(APP_BUNDLE)/Contents/MacOS/Parrot 2>/dev/null; true
 	codesign --force --deep --sign - $(APP_BUNDLE)
-	cd $(RELEASE_DIR) && zip -r -y $(APP_NAME)-$(VERSION)-macos-arm64.zip $(APP_NAME).app
 	@echo "Creating DMG installer..."
 	scripts/create-dmg.sh $(APP_BUNDLE) $(VERSION) $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg
 	@echo ""
-	@echo "Done! Release artifacts:"
-	@echo "  $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.zip"
+	@echo "Done! Release artifact:"
 	@echo "  $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg"
 	@echo ""
 	@echo "To test: open $(APP_BUNDLE)"
