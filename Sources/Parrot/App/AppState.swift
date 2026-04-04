@@ -12,6 +12,7 @@ enum SetupStep {
     case accessibility
     case microphone
     case models
+    case ready
     case complete
 }
 
@@ -26,10 +27,14 @@ final class AppState {
     var microphoneAuthorized: Bool = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     var modelsConfigured: Bool = false
 
+    var setupFinished = false
+    private var hasRunInitialCheck = false
+
     var currentSetupStep: SetupStep {
         if !accessibilityGranted { return .accessibility }
         if !microphoneAuthorized { return .microphone }
         if !modelsConfigured { return .models }
+        if !setupFinished { return .ready }
         return .complete
     }
 
@@ -39,6 +44,14 @@ final class AppState {
         let whisper = UserDefaults.standard.string(forKey: "whisperModelPath") ?? ""
         let llm = UserDefaults.standard.string(forKey: "llamaModelPath") ?? ""
         modelsConfigured = !whisper.isEmpty && !llm.isEmpty
+
+        // Skip the ready screen only if everything was already configured at launch
+        if !hasRunInitialCheck {
+            hasRunInitialCheck = true
+            if accessibilityGranted && microphoneAuthorized && modelsConfigured {
+                setupFinished = true
+            }
+        }
     }
 
     var statusIcon: String {

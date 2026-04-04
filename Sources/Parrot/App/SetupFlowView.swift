@@ -18,6 +18,7 @@ struct SetupFlowView: View {
         case .accessibility: return 0
         case .microphone: return 1
         case .models: return 2
+        case .ready: return 3
         case .complete: return 3
         }
     }
@@ -84,6 +85,8 @@ struct SetupFlowView: View {
                         microphoneStep
                     case .models:
                         modelsStep
+                    case .ready:
+                        readyStep
                     case .complete:
                         EmptyView()
                     }
@@ -299,7 +302,51 @@ struct SetupFlowView: View {
         }
     }
 
+    // MARK: - Ready Step
+
+    private var readyStep: some View {
+        VStack(spacing: 20) {
+            Spacer().frame(height: 20)
+
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 44))
+                .foregroundStyle(.green)
+
+            VStack(spacing: 8) {
+                Text("You're All Set")
+                    .font(.headline)
+
+                Text("Parrot is configured and ready to go. Relaunch to start using it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 360)
+            }
+
+            Button {
+                relaunch()
+            } label: {
+                Text("Relaunch Parrot")
+                    .font(.system(.body, weight: .medium))
+                    .frame(maxWidth: 240)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     // MARK: - Helpers
+
+    private func relaunch() {
+        let url = Bundle.main.bundleURL
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments = [url.path]
+        try? task.run()
+        _exit(0)
+    }
 
     private func refreshModels() {
         whisperModels = modelManager.availableWhisperModels()
