@@ -65,9 +65,21 @@ release:
 	install_name_tool -add_rpath @executable_path/../Frameworks $(APP_BUNDLE)/Contents/MacOS/Parrot 2>/dev/null; true
 	codesign --force --deep --sign - $(APP_BUNDLE)
 	cd $(RELEASE_DIR) && zip -r -y $(APP_NAME)-$(VERSION)-macos-arm64.zip $(APP_NAME).app
+	@echo "Creating DMG installer..."
+	rm -rf $(RELEASE_DIR)/dmg-staging
+	mkdir -p $(RELEASE_DIR)/dmg-staging
+	cp -R $(APP_BUNDLE) $(RELEASE_DIR)/dmg-staging/
+	ln -s /Applications $(RELEASE_DIR)/dmg-staging/Applications
+	rm -f $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg
+	hdiutil create -volname "$(APP_NAME) $(VERSION)" \
+		-srcfolder $(RELEASE_DIR)/dmg-staging \
+		-ov -format UDZO \
+		$(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg
+	rm -rf $(RELEASE_DIR)/dmg-staging
 	@echo ""
-	@echo "Done! Release archive:"
+	@echo "Done! Release artifacts:"
 	@echo "  $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.zip"
+	@echo "  $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg"
 	@echo ""
 	@echo "To test: open $(APP_BUNDLE)"
 
