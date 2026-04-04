@@ -22,6 +22,11 @@ let package = Package(
                 .process("../../Resources")
             ]
         ),
+        .testTarget(
+            name: "ParrotTests",
+            dependencies: ["Parrot"],
+            path: "Tests/ParrotTests"
+        ),
         .binaryTarget(
             name: "whisper",
             url: "https://github.com/ggml-org/whisper.cpp/releases/download/v1.8.4/whisper-v1.8.4-xcframework.zip",
