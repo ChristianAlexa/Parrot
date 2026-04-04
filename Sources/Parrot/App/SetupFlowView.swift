@@ -156,6 +156,9 @@ struct SetupFlowView: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
+        .onAppear {
+            PermissionsManager.shared.resetAccessibility()
+        }
     }
 
     // MARK: - Microphone Step
