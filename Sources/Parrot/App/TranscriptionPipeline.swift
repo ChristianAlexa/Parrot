@@ -18,6 +18,29 @@ final class TranscriptionPipeline {
     private var testStartObserver: Any?
     private var testStopObserver: Any?
 
+    // MARK: - Testable Pure Logic
+
+    enum AudioValidationResult: Equatable {
+        case valid
+        case tooShort
+        case tooQuiet
+    }
+
+    nonisolated static let minSampleCount = Int(16000 * 0.5) // 0.5s at 16kHz
+    nonisolated static let minRMS = 0.005
+
+    nonisolated static func validateAudio(_ samples: [Float]) -> AudioValidationResult {
+        guard samples.count >= minSampleCount else { return .tooShort }
+        let rms = samples.isEmpty ? 0.0 : sqrt(samples.map { Double($0) * Double($0) }.reduce(0, +) / Double(samples.count))
+        guard rms >= minRMS else { return .tooQuiet }
+        return .valid
+    }
+
+    nonisolated static func applyCleanup(rawTranscript: String, llmResult: String?, tone: TonePreset) -> String {
+        let text = llmResult ?? rawTranscript
+        return tone.postProcess(text)
+    }
+
     init() {
         testStartObserver = NotificationCenter.default.addObserver(
             forName: .testRecordingStarted,
@@ -257,80 +280,7 @@ final class TranscriptionPipeline {
     private func processRecording() {
         logger.info("Recording stopped, processing...")
         ActivityLog.shared.log(.info, category: "Pipeline", message: "Recording stopped, processing...")
-        sharedAppState.status = .processing
-
-        // Signal any running detached inference thread to stop, then cancel the task
-        llamaManager.cancelInference()
-        processingTask?.cancel()
-
-        processingTask = Task {
-            let samples = await audioCaptureManager.stopCapture()
-
-            // Reject recordings that are too short or too quiet (avoids whisper hallucinations)
-            let minSamples = Int(16000 * 0.5) // 0.5s at 16kHz
-            let rms = samples.isEmpty ? 0.0 : sqrt(samples.map { Double($0) * Double($0) }.reduce(0, +) / Double(samples.count))
-            let minRMS = 0.005 // silence threshold
-
-            guard samples.count >= minSamples, rms >= minRMS else {
-                let reason = samples.count < minSamples ? "Too short" : "No audio detected — check microphone"
-                logger.warning("Recording rejected (samples: \(samples.count), rms: \(String(format: "%.4f", rms))) — too short or silent")
-                ActivityLog.shared.log(.warning, category: "Pipeline", message: "Recording rejected (samples: \(samples.count), rms: \(String(format: "%.4f", rms))) — too short or silent")
-                sharedAppState.status = .error(reason)
-                NSSound(named: "Basso")?.play()
-                Task {
-                    try? await Task.sleep(for: .seconds(3))
-                    if case .error = sharedAppState.status {
-                        sharedAppState.status = .idle
-                    }
-                }
-                return
-            }
-
-            do {
-                let rawTranscript = try await whisperManager.transcribe(samples: samples, initialPrompt: PersonalDictionary.whisperPrompt())
-                logger.info("Raw transcript: \(rawTranscript)")
-                ActivityLog.shared.log(.info, category: "Pipeline", message: "Raw transcript: \(rawTranscript)")
-
-                guard !Task.isCancelled else {
-                    logger.info("Processing cancelled after transcription")
-                    ActivityLog.shared.log(.info, category: "Pipeline", message: "Processing cancelled after transcription")
-                    sharedAppState.status = .idle
-                    return
-                }
-
-                let llmEnabled = UserDefaults.standard.bool(forKey: "llmCleanupEnabled")
-                let finalText: String
-
-                if llmEnabled, llamaManager.isModelLoaded {
-                    finalText = try await llamaManager.cleanup(rawTranscript: rawTranscript)
-                } else {
-                    finalText = rawTranscript
-                }
-
-                if !isTestMode {
-                    textInjector.inject(finalText)
-                }
-                NotificationCenter.default.post(
-                    name: .testTranscriptionResult,
-                    object: nil,
-                    userInfo: ["text": finalText]
-                )
-
-                let wordCount = finalText.split(separator: " ").count
-                let duration = Double(samples.count) / 16000.0
-                DictationStats.record(wordCount: wordCount, durationSeconds: duration, tonePreset: TonePreset.current.rawValue)
-
-                let glass = NSSound(named: "Glass")
-                glass?.volume = 0.2
-                glass?.play()
-                sharedAppState.status = .idle
-
-            } catch {
-                logger.error("Processing failed: \(error.localizedDescription)")
-                ActivityLog.shared.log(.error, category: "Pipeline", message: "Processing failed: \(error.localizedDescription)")
-                sharedAppState.status = .error(error.localizedDescription)
-            }
-        }
+        processSamples()
     }
 
     // MARK: - Test Recording
@@ -386,57 +336,114 @@ final class TranscriptionPipeline {
     }
 
     private func processTestRecording() {
+        processSamples()
+    }
+
+    /// Shared processing path for both normal and test recordings.
+    private func processSamples() {
         sharedAppState.status = .processing
 
         llamaManager.cancelInference()
         processingTask?.cancel()
 
+        let testMode = isTestMode
+
         processingTask = Task {
+            defer { if testMode { isTestMode = false } }
+
             let samples = await audioCaptureManager.stopCapture()
 
-            let minSamples = Int(16000 * 0.5)
-            let rms = samples.isEmpty ? 0.0 : sqrt(samples.map { Double($0) * Double($0) }.reduce(0, +) / Double(samples.count))
-
-            guard samples.count >= minSamples, rms >= 0.005 else {
-                let reason = samples.count < minSamples ? "Too short" : "No audio detected — check microphone"
-                NotificationCenter.default.post(
-                    name: .testTranscriptionError,
-                    object: nil,
-                    userInfo: ["message": reason]
-                )
-                sharedAppState.status = .idle
-                isTestMode = false
+            switch Self.validateAudio(samples) {
+            case .valid:
+                break
+            case .tooShort:
+                handleRejection("Too short", samples: samples, testMode: testMode)
+                return
+            case .tooQuiet:
+                handleRejection("No audio detected — check microphone", samples: samples, testMode: testMode)
                 return
             }
 
             do {
                 let rawTranscript = try await whisperManager.transcribe(samples: samples, initialPrompt: PersonalDictionary.whisperPrompt())
 
-                let llmEnabled = UserDefaults.standard.bool(forKey: "llmCleanupEnabled")
-                let finalText: String
-
-                if llmEnabled, llamaManager.isModelLoaded {
-                    finalText = try await llamaManager.cleanup(rawTranscript: rawTranscript)
-                } else {
-                    finalText = rawTranscript
+                if !testMode {
+                    logger.info("Raw transcript: \(rawTranscript)")
+                    ActivityLog.shared.log(.info, category: "Pipeline", message: "Raw transcript: \(rawTranscript)")
                 }
 
+                guard !Task.isCancelled else {
+                    if !testMode {
+                        logger.info("Processing cancelled after transcription")
+                        ActivityLog.shared.log(.info, category: "Pipeline", message: "Processing cancelled after transcription")
+                    }
+                    sharedAppState.status = .idle
+                    return
+                }
+
+                let llmEnabled = UserDefaults.standard.bool(forKey: "llmCleanupEnabled")
+                let llmResult: String? = (llmEnabled && llamaManager.isModelLoaded)
+                    ? try await llamaManager.cleanup(rawTranscript: rawTranscript)
+                    : nil
+                let finalText = Self.applyCleanup(rawTranscript: rawTranscript, llmResult: llmResult, tone: TonePreset.current)
+
+                if !testMode {
+                    textInjector.inject(finalText)
+                }
                 NotificationCenter.default.post(
                     name: .testTranscriptionResult,
                     object: nil,
                     userInfo: ["text": finalText]
                 )
+
+                if !testMode {
+                    let wordCount = finalText.split(separator: " ").count
+                    let duration = Double(samples.count) / 16000.0
+                    DictationStats.record(wordCount: wordCount, durationSeconds: duration, tonePreset: TonePreset.current.rawValue)
+
+                    let glass = NSSound(named: "Glass")
+                    glass?.volume = 0.2
+                    glass?.play()
+                }
                 sharedAppState.status = .idle
 
             } catch {
-                NotificationCenter.default.post(
-                    name: .testTranscriptionError,
-                    object: nil,
-                    userInfo: ["message": error.localizedDescription]
-                )
-                sharedAppState.status = .idle
+                if testMode {
+                    NotificationCenter.default.post(
+                        name: .testTranscriptionError,
+                        object: nil,
+                        userInfo: ["message": error.localizedDescription]
+                    )
+                    sharedAppState.status = .idle
+                } else {
+                    logger.error("Processing failed: \(error.localizedDescription)")
+                    ActivityLog.shared.log(.error, category: "Pipeline", message: "Processing failed: \(error.localizedDescription)")
+                    sharedAppState.status = .error(error.localizedDescription)
+                }
             }
+        }
+    }
+
+    private func handleRejection(_ reason: String, samples: [Float], testMode: Bool) {
+        if testMode {
+            NotificationCenter.default.post(
+                name: .testTranscriptionError,
+                object: nil,
+                userInfo: ["message": reason]
+            )
+            sharedAppState.status = .idle
             isTestMode = false
+        } else {
+            logger.warning("Recording rejected (samples: \(samples.count)) — \(reason)")
+            ActivityLog.shared.log(.warning, category: "Pipeline", message: "Recording rejected (samples: \(samples.count)) — \(reason)")
+            sharedAppState.status = .error(reason)
+            NSSound(named: "Basso")?.play()
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                if case .error = sharedAppState.status {
+                    sharedAppState.status = .idle
+                }
+            }
         }
     }
 }

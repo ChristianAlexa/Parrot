@@ -32,7 +32,24 @@ enum TonePreset: String, CaseIterable, Identifiable {
         case .technical:
             "Preserve all technical terminology, acronyms, and domain-specific jargon exactly as spoken — do not simplify or rephrase technical content"
         case .lowkey:
-            "Format like a casual text message — all lowercase, no apostrophes (use dont instead of don't, im instead of I'm), minimal punctuation (periods only, no commas or exclamation marks), do not change the actual words or use slang"
+            "Format like a casual text message — all lowercase, no apostrophes, minimal punctuation, do not change the actual words or use slang"
+        }
+    }
+
+    /// Applies deterministic formatting that the LLM can't be trusted to do reliably.
+    func postProcess(_ text: String) -> String {
+        switch self {
+        case .lowkey:
+            var result = text.lowercased()
+            // Strip apostrophes from contractions (don't → dont, I'm → im)
+            result = result.replacingOccurrences(of: "'", with: "")
+            result = result.replacingOccurrences(of: "\u{2019}", with: "") // curly apostrophe
+            // Strip commas and exclamation marks
+            result = result.replacingOccurrences(of: ",", with: "")
+            result = result.replacingOccurrences(of: "!", with: "")
+            return result
+        default:
+            return text
         }
     }
 
