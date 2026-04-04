@@ -39,7 +39,19 @@ build:
 	swift build
 
 start: build
-	.build/debug/Parrot
+	@rm -rf .build/dev-app/Parrot.app
+	@mkdir -p .build/dev-app/Parrot.app/Contents/MacOS
+	@mkdir -p .build/dev-app/Parrot.app/Contents/Resources
+	@mkdir -p .build/dev-app/Parrot.app/Contents/Frameworks
+	@cp .build/debug/Parrot .build/dev-app/Parrot.app/Contents/MacOS/Parrot
+	@cp -R .build/arm64-apple-macosx/debug/whisper.framework .build/dev-app/Parrot.app/Contents/Frameworks/ 2>/dev/null; true
+	@cp -R .build/arm64-apple-macosx/debug/llama.framework .build/dev-app/Parrot.app/Contents/Frameworks/ 2>/dev/null; true
+	@cp Resources/Info.plist .build/dev-app/Parrot.app/Contents/Info.plist 2>/dev/null || printf '$(PLIST)' > .build/dev-app/Parrot.app/Contents/Info.plist
+	@cp Resources/images/AppIcon.icns .build/dev-app/Parrot.app/Contents/Resources/AppIcon.icns 2>/dev/null; true
+	@cp Resources/images/parrot.jpeg .build/dev-app/Parrot.app/Contents/Resources/parrot.jpeg 2>/dev/null; true
+	@install_name_tool -add_rpath @executable_path/../Frameworks .build/dev-app/Parrot.app/Contents/MacOS/Parrot 2>/dev/null; true
+	@codesign --force --deep --sign - .build/dev-app/Parrot.app 2>/dev/null; true
+	open .build/dev-app/Parrot.app
 
 check:
 	swift build -c release
