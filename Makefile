@@ -66,16 +66,7 @@ release:
 	codesign --force --deep --sign - $(APP_BUNDLE)
 	cd $(RELEASE_DIR) && zip -r -y $(APP_NAME)-$(VERSION)-macos-arm64.zip $(APP_NAME).app
 	@echo "Creating DMG installer..."
-	rm -rf $(RELEASE_DIR)/dmg-staging
-	mkdir -p $(RELEASE_DIR)/dmg-staging
-	cp -R $(APP_BUNDLE) $(RELEASE_DIR)/dmg-staging/
-	ln -s /Applications $(RELEASE_DIR)/dmg-staging/Applications
-	rm -f $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg
-	hdiutil create -volname "$(APP_NAME) $(VERSION)" \
-		-srcfolder $(RELEASE_DIR)/dmg-staging \
-		-ov -format UDZO \
-		$(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg
-	rm -rf $(RELEASE_DIR)/dmg-staging
+	scripts/create-dmg.sh $(APP_BUNDLE) $(VERSION) $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg
 	@echo ""
 	@echo "Done! Release artifacts:"
 	@echo "  $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.zip"
