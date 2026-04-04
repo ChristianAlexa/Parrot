@@ -15,9 +15,6 @@ rm -rf "$STAGING"
 mkdir -p "$STAGING"
 cp -R "$APP_BUNDLE" "$STAGING/"
 
-# Build the Setup applet (native macOS dialogs, no Terminal window)
-osacompile -o "$STAGING/Setup.app" "$SCRIPT_DIR/setup.applescript"
-
 # Add README
 cp "$SCRIPT_DIR/README.txt" "$STAGING/README.txt"
 
@@ -37,6 +34,10 @@ ACTUAL_VOL_NAME=$(basename "$MOUNT_DIR")
 cp "$APP_BUNDLE/Contents/Resources/AppIcon.icns" "$MOUNT_DIR/.VolumeIcon.icns"
 SetFile -a C "$MOUNT_DIR" 2>/dev/null || true
 
+# Add Applications alias for drag-to-install (Finder alias preserves folder icon)
+osascript -e 'tell application "Finder" to make alias file to POSIX file "/Applications" at POSIX file "'"$MOUNT_DIR"'"'
+sleep 2
+
 # Kill any cached .DS_Store
 rm -f "$MOUNT_DIR/.DS_Store"
 
@@ -49,20 +50,20 @@ tell application "Finder"
         set current view of container window to icon view
         set toolbar visible of container window to false
         set statusbar visible of container window to false
-        set bounds of container window to {200, 200, 680, 480}
+        set bounds of container window to {200, 200, 680, 440}
         set theViewOptions to icon view options of container window
         set arrangement of theViewOptions to not arranged
         set icon size of theViewOptions to 80
         delay 1
-        -- position items: README (left), Setup (center), Parrot (right)
+        -- position items: README (left), Parrot (center), Applications (right)
         repeat with f in (get every item of container window)
             set n to name of f
             if n is "README.txt" then
-                set position of f to {100, 110}
-            else if n starts with "Setup" then
-                set position of f to {260, 110}
+                set position of f to {120, 120}
             else if n starts with "Parrot" then
-                set position of f to {420, 110}
+                set position of f to {260, 120}
+            else if n is "Applications" then
+                set position of f to {400, 120}
             end if
         end repeat
         close
