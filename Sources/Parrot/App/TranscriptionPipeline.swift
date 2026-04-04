@@ -241,13 +241,17 @@ final class TranscriptionPipeline {
             return
         }
 
-        // If the engine is still starting, flag it so startRecording handles cleanup
+        // If the engine is still starting, flag it so beginRecording handles cleanup
         stopRequested = true
-        if recordingTask != nil {
-            recordingTask = nil
-        }
 
-        processRecording()
+        let pendingTask = recordingTask
+        recordingTask = nil
+
+        Task {
+            // Wait for the recording task to finish starting the engine before processing
+            await pendingTask?.value
+            processRecording()
+        }
     }
 
     private func processRecording() {
@@ -364,8 +368,14 @@ final class TranscriptionPipeline {
     private func stopTestRecording() {
         guard isTestMode, sharedAppState.status == .recording else { return }
         stopRequested = true
+
+        let pendingTask = recordingTask
         recordingTask = nil
-        processTestRecording()
+
+        Task {
+            await pendingTask?.value
+            processTestRecording()
+        }
     }
 
     private func processTestRecording() {
