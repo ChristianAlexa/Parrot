@@ -118,7 +118,9 @@ struct RecommendedModelCard: View {
                     // Downloaded but not selected — offer to select
                     HStack {
                         Button("Use This Model") {
-                            selectedPath = downloader.modelPath(for: model).path
+                            let path = downloader.modelPath(for: model)
+                            guard FileManager.default.fileExists(atPath: path.path) else { return }
+                            selectedPath = path.path
                         }
                         .font(.caption)
                         .buttonStyle(.borderedProminent)
@@ -175,7 +177,9 @@ struct RecommendedModelCard: View {
                     Spacer()
 
                     Button("Use This Model") {
-                        selectedPath = downloader.modelPath(for: model).path
+                        let path = downloader.modelPath(for: model)
+                        guard FileManager.default.fileExists(atPath: path.path) else { return }
+                        selectedPath = path.path
                         onModelsChanged()
                     }
                     .font(.caption)
