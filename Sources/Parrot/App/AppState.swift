@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 enum AppStatus: Equatable {
     case idle
@@ -7,12 +8,38 @@ enum AppStatus: Equatable {
     case error(String)
 }
 
+enum SetupStep {
+    case accessibility
+    case microphone
+    case models
+    case complete
+}
+
 @Observable
 final class AppState {
     var status: AppStatus = .idle
     var isModelsLoaded = false
     var modelLoadingProgress: String = ""
     var isTestModeActive = false
+
+    var accessibilityGranted: Bool = AXIsProcessTrusted()
+    var microphoneAuthorized: Bool = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    var modelsConfigured: Bool = false
+
+    var currentSetupStep: SetupStep {
+        if !accessibilityGranted { return .accessibility }
+        if !microphoneAuthorized { return .microphone }
+        if !modelsConfigured { return .models }
+        return .complete
+    }
+
+    func refreshSetupState() {
+        accessibilityGranted = AXIsProcessTrusted()
+        microphoneAuthorized = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        let whisper = UserDefaults.standard.string(forKey: "whisperModelPath") ?? ""
+        let llm = UserDefaults.standard.string(forKey: "llamaModelPath") ?? ""
+        modelsConfigured = !whisper.isEmpty && !llm.isEmpty
+    }
 
     var statusIcon: String {
         switch status {

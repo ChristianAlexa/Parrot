@@ -1,8 +1,5 @@
 import SwiftUI
 
-@MainActor
-let sharedModelDownloader = ModelDownloader()
-
 // MARK: - Output Style Tab
 
 struct OutputStyleView: View {

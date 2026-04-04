@@ -17,6 +17,9 @@ let sharedAppState = AppState()
 @MainActor
 let sharedAudioDeviceManager = AudioDeviceManager()
 
+@MainActor
+let sharedModelDownloader = ModelDownloader()
+
 @main
 struct ParrotApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -36,6 +39,18 @@ struct MenuBarContentView: View {
     @State private var selectedTab: SidebarTab = .record
 
     var body: some View {
+        Group {
+            if sharedAppState.currentSetupStep != .complete {
+                SetupFlowView()
+            } else {
+                normalContentView
+            }
+        }
+        .background(OpaqueWindowBackground())
+        .frame(width: MenuBarStyle.settingsWidth, height: 480)
+    }
+
+    private var normalContentView: some View {
         HStack(spacing: 0) {
             // Sidebar
             VStack(spacing: 2) {
@@ -95,8 +110,6 @@ struct MenuBarContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .background(OpaqueWindowBackground())
-        .frame(width: MenuBarStyle.settingsWidth, height: 480)
     }
 
     @ViewBuilder
@@ -139,19 +152,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ActivityLog.shared.log(.info, category: "App", message: "Parrot launched")
 
         modelManager.ensureModelsDirectoryExists()
-        PermissionsManager.shared.requestAccessibilityIfNeeded()
+        sharedAppState.refreshSetupState()
 
-        Task {
-            let micGranted = await PermissionsManager.shared.requestMicrophoneAccess()
-            if !micGranted {
-                logger.warning("Microphone permission not granted")
-                ActivityLog.shared.log(.warning, category: "App", message: "Microphone permission not granted")
+        if sharedAppState.currentSetupStep == .complete {
+            setupHotkey()
+            pipeline.loadModels()
+        } else {
+            observeSetupCompletion()
+        }
+        observeSettingsChanges()
+    }
+
+    private func observeSetupCompletion() {
+        // Re-check when setup state changes; start hotkey + load models once complete
+        withObservationTracking {
+            _ = sharedAppState.currentSetupStep
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                if sharedAppState.currentSetupStep == .complete {
+                    self.setupHotkey()
+                    self.pipeline.loadModels()
+                } else {
+                    self.observeSetupCompletion()
+                }
             }
         }
-
-        setupHotkey()
-        pipeline.loadModels()
-        observeSettingsChanges()
     }
 
     private func setupHotkey() {
@@ -165,6 +191,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.pipeline.stopRecordingAndProcess()
             }
         }
+
 
         NotificationCenter.default.addObserver(
             forName: .hotkeyDidChange,
