@@ -159,14 +159,20 @@ struct SetupFlowView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
 
-            Button {
-                PermissionsManager.shared.resetAccessibility()
-            } label: {
-                Text("Reset Permission")
-                    .font(.caption2)
+            HStack(spacing: 4) {
+                Text("Permission not working?")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button {
+                    PermissionsManager.shared.resetAccessibility()
+                } label: {
+                    Text("Reset and try again.")
+                        .font(.caption)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
         .onAppear {
