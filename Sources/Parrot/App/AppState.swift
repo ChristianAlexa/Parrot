@@ -42,8 +42,8 @@ final class AppState {
         accessibilityGranted = AXIsProcessTrusted()
         microphoneAuthorized = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
         let whisper = UserDefaults.standard.string(forKey: "whisperModelPath") ?? ""
-        let llm = UserDefaults.standard.string(forKey: "llamaModelPath") ?? ""
-        modelsConfigured = !whisper.isEmpty && !llm.isEmpty
+        let llama = UserDefaults.standard.string(forKey: "llamaModelPath") ?? ""
+        modelsConfigured = !whisper.isEmpty && !llama.isEmpty
 
         // Skip the ready screen only if everything was already configured at launch
         if !hasRunInitialCheck {

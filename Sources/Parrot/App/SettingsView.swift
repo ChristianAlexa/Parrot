@@ -518,7 +518,6 @@ struct AboutTabView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 120, height: 120)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
             }
 
             Text("Parrot")
@@ -648,10 +647,11 @@ struct StatsTabView: View {
     }
 
     private var formattedDuration: String {
-        let total = Int(stats.totalRecordingSeconds)
-        if total < 60 { return "\(total)s" }
-        if total < 3600 { return "\(total / 60)m \(total % 60)s" }
-        return "\(total / 3600)h \(total % 3600 / 60)m"
+        guard stats.totalRecordingSeconds >= 1 else { return "0s" }
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.allowedUnits = [.hour, .minute, .second]
+        return formatter.string(from: stats.totalRecordingSeconds) ?? "0s"
     }
 
     private var formattedWPM: String {
@@ -669,10 +669,12 @@ struct StatsTabView: View {
         guard stats.totalWords > 0 else { return "—" }
         let typingMinutes = Double(stats.totalWords) / 40.0
         let dictationMinutes = stats.totalRecordingSeconds / 60.0
-        let savedMinutes = max(0, typingMinutes - dictationMinutes)
-        if savedMinutes < 1 { return "< 1 min" }
-        if savedMinutes < 60 { return "\(Int(savedMinutes)) min" }
-        return String(format: "%.1f hrs", savedMinutes / 60.0)
+        let savedSeconds = max(0, (typingMinutes - dictationMinutes) * 60)
+        if savedSeconds < 60 { return "< 1m" }
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.allowedUnits = [.hour, .minute]
+        return formatter.string(from: savedSeconds) ?? "< 1m"
     }
 }
 
