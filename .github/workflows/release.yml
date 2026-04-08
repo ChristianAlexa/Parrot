@@ -19,28 +19,16 @@ jobs:
       - name: Build release
         run: make release
 
-      - name: Extract tag annotation
-        id: tag_message
-        run: |
-          # Read the tag object directly — this returns only the tag
-          # annotation, never the underlying commit message.
-          # Falls back to auto-generated notes for lightweight tags.
-          MSG=$(git cat-file tag "${GITHUB_REF_NAME}" 2>/dev/null | sed '1,/^$/d')
-          if [ -z "$MSG" ]; then
-            echo "use_auto=true" >> "$GITHUB_OUTPUT"
-          else
-            {
-              echo "body<<TAGEOF"
-              echo "$MSG"
-              echo "TAGEOF"
-            } >> "$GITHUB_OUTPUT"
-            echo "use_auto=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Generate release notes
+        id: release_notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip header
 
       - name: Upload release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             .build/release-app/Parrot-*-macos-arm64.dmg
-          body: ${{ steps.tag_message.outputs.use_auto == 'true' && '' || steps.tag_message.outputs.body }}
-          generate_release_notes: ${{ steps.tag_message.outputs.use_auto == 'true' }}
+          body: ${{ steps.release_notes.outputs.content }}

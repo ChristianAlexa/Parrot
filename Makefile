@@ -1,4 +1,4 @@
-.PHONY: build start clean check test release tag
+.PHONY: build start clean check test release tag changelog
 
 APP_NAME := Parrot
 VERSION := 0.5.0
@@ -86,6 +86,9 @@ release: test
 	@echo "  $(RELEASE_DIR)/$(APP_NAME)-$(VERSION)-macos-arm64.dmg"
 	@echo ""
 	@echo "To test: open $(APP_BUNDLE)"
+
+changelog:
+	git cliff -o CHANGELOG.md
 
 tag: test
 	@if git rev-parse "v$(VERSION)" >/dev/null 2>&1; then \
