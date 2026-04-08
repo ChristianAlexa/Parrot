@@ -61,7 +61,7 @@ final class TranscriptionPipelineTests: XCTestCase {
             llmResult: nil,
             tone: .neutral
         )
-        XCTAssertEqual(result, "Hello world")
+        XCTAssertEqual(result, "Hello world.")
     }
 
     func testApplyCleanupWithLLMResult() {

@@ -40,7 +40,7 @@ enum TonePreset: String, CaseIterable, Identifiable {
     func postProcess(_ text: String) -> String {
         switch self {
         case .lowkey:
-            var result = text.lowercased()
+            var result = Self.collapseWhitespace(text).lowercased()
             // Strip apostrophes from contractions (don't → dont, I'm → im)
             result = result.replacingOccurrences(of: "'", with: "")
             result = result.replacingOccurrences(of: "\u{2019}", with: "") // curly apostrophe
@@ -48,9 +48,29 @@ enum TonePreset: String, CaseIterable, Identifiable {
             result = result.replacingOccurrences(of: ",", with: "")
             result = result.replacingOccurrences(of: "!", with: "")
             return result
-        default:
+        case .neutral, .professional, .technical:
+            var result = Self.collapseWhitespace(text)
+            result = Self.capitalizeFirst(result)
+            result = Self.ensureTrailingPunctuation(result)
+            return result
+        case .casual:
             return text
         }
+    }
+
+    private static func collapseWhitespace(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+    }
+
+    private static func capitalizeFirst(_ text: String) -> String {
+        guard let first = text.first else { return text }
+        return first.uppercased() + text.dropFirst()
+    }
+
+    private static func ensureTrailingPunctuation(_ text: String) -> String {
+        guard let last = text.last else { return text }
+        if last.isPunctuation { return text }
+        return text + "."
     }
 
     /// Read the current selection from UserDefaults.
