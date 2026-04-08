@@ -387,12 +387,14 @@ struct RecordTabView: View {
 struct SettingsTabView: View {
     @AppStorage("audioFeedbackEnabled") private var audioFeedbackEnabled: Bool = true
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
+    @AppStorage("showFloatingBar") private var showFloatingBar: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             GroupBox("System") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Audio feedback (sounds on record start/stop)", isOn: $audioFeedbackEnabled)
+                    Toggle("Show floating bar while recording", isOn: $showFloatingBar)
                     Toggle("Launch at login", isOn: $launchAtLogin)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

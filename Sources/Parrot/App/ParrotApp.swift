@@ -140,6 +140,7 @@ struct MenuBarContentView: View {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let logger = Logger(subsystem: "com.parrot", category: "App")
     private let pipeline = TranscriptionPipeline()
+    private let floatingBarController = FloatingBarController()
     private lazy var hotkeyManager: HotkeyManager = {
         let saved = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
         let savedMods = UserDefaults.standard.integer(forKey: "hotkeyModifiers")
@@ -157,6 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if sharedAppState.currentSetupStep == .complete {
             setupHotkey()
             pipeline.loadModels()
+            floatingBarController.setup()
         } else {
             observeSetupCompletion()
         }
@@ -171,6 +173,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if sharedAppState.currentSetupStep == .complete {
                     self.setupHotkey()
                     self.pipeline.loadModels()
+                    self.floatingBarController.setup()
                 } else {
                     self.observeSetupCompletion()
                 }

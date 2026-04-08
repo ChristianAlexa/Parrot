@@ -131,6 +131,12 @@ final class AudioCaptureManager {
         guard let channelData = convertedBuffer.floatChannelData?[0] else { return }
         let samples = Array(UnsafeBufferPointer(start: channelData, count: Int(convertedBuffer.frameLength)))
 
+        let rms = sqrt(samples.map { $0 * $0 }.reduce(0, +) / Float(max(samples.count, 1)))
+        let normalizedLevel = min(rms * 5.0, 1.0)
+        Task { @MainActor in
+            sharedAudioLevelMonitor.push(normalizedLevel)
+        }
+
         Task {
             await sampleBuffer.append(samples)
         }
