@@ -112,7 +112,11 @@ final class WhisperManager {
             }
         }
 
-        return text.trimmingCharacters(in: .whitespaces)
+        var cleaned = text.trimmingCharacters(in: .whitespaces)
+        while cleaned.hasPrefix("-") {
+            cleaned = String(cleaned.dropFirst()).trimmingCharacters(in: .whitespaces)
+        }
+        return cleaned
     }
 }
 
