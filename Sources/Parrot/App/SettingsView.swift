@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Output Style Tab
 
@@ -9,6 +10,8 @@ struct OutputStyleView: View {
     @State private var dictionaryWords: [String] = []
     @State private var newWord: String = ""
     @State private var showClearConfirmation: Bool = false
+    @State private var importError: String?
+    @State private var pendingImportURL: URL?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -38,7 +41,15 @@ struct OutputStyleView: View {
                 Text("\(dictionaryWords.count) / \(PersonalDictionary.maxEntries)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
+                Button("Import") { importDictionary() }
+                    .font(.caption2)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
                 if !dictionaryWords.isEmpty {
+                    Button("Export") { exportDictionary() }
+                        .font(.caption2)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
                     if showClearConfirmation {
                         HStack(spacing: 6) {
                             Text("Clear all?")
@@ -105,6 +116,73 @@ struct OutputStyleView: View {
         .padding()
         .onAppear {
             dictionaryWords = PersonalDictionary.words()
+        }
+        .alert("Import Error", isPresented: Binding(
+            get: { importError != nil },
+            set: { if !$0 { importError = nil } }
+        )) {
+            Button("OK") { importError = nil }
+        } message: {
+            Text(importError ?? "")
+        }
+        .alert("Import Dictionary", isPresented: Binding(
+            get: { pendingImportURL != nil },
+            set: { if !$0 { pendingImportURL = nil } }
+        )) {
+            Button("Replace") { finishImport(merge: false) }
+            Button("Merge") { finishImport(merge: true) }
+            Button("Cancel", role: .cancel) { pendingImportURL = nil }
+        } message: {
+            Text("You have \(dictionaryWords.count) existing words. Replace them or merge with the imported file?")
+        }
+    }
+
+    private func exportDictionary() {
+        guard let data = PersonalDictionary.exportData() else { return }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "parrot-dictionary.json"
+        panel.allowedContentTypes = [.json]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try data.write(to: url)
+        } catch {
+            importError = error.localizedDescription
+        }
+    }
+
+    private func importDictionary() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        if dictionaryWords.isEmpty {
+            finishImport(from: url, merge: false)
+        } else {
+            pendingImportURL = url
+        }
+    }
+
+    private func finishImport(merge: Bool) {
+        guard let url = pendingImportURL else { return }
+        pendingImportURL = nil
+        finishImport(from: url, merge: merge)
+    }
+
+    private func finishImport(from url: URL, merge: Bool) {
+        do {
+            let imported = try PersonalDictionary.importWords(from: url)
+            if merge {
+                let merged = dictionaryWords + imported.filter { new in
+                    !dictionaryWords.contains { $0.caseInsensitiveCompare(new) == .orderedSame }
+                }
+                dictionaryWords = Array(merged.prefix(PersonalDictionary.maxEntries))
+            } else {
+                dictionaryWords = imported
+            }
+            PersonalDictionary.save(dictionaryWords)
+        } catch {
+            importError = "Could not read dictionary file: \(error.localizedDescription)"
         }
     }
 

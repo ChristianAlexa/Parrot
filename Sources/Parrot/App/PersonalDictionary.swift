@@ -28,6 +28,22 @@ enum PersonalDictionary {
         return w.joined(separator: ", ")
     }
 
+    /// JSON-encoded data of the current dictionary, suitable for file export.
+    static func exportData() -> Data? {
+        let w = words()
+        guard !w.isEmpty else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try? encoder.encode(w)
+    }
+
+    /// Reads a JSON file and returns the decoded words (capped at `maxEntries`).
+    static func importWords(from url: URL) throws -> [String] {
+        let data = try Data(contentsOf: url)
+        let decoded = try JSONDecoder().decode([String].self, from: data)
+        return Array(decoded.prefix(maxEntries))
+    }
+
     /// Vocabulary hint appended to the LLM cleanup system message.
     static func cleanupHint() -> String? {
         let w = words()
