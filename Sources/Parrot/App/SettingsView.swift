@@ -426,8 +426,6 @@ struct ModelsTabView: View {
     @AppStorage(DefaultsKey.whisperModelPath) private var whisperModelPath: String = ""
     @AppStorage(DefaultsKey.llamaModelPath) private var llamaModelPath: String = ""
 
-    private let store = sharedModelsStore
-
     var body: some View {
         VStack(spacing: 10) {
             if whisperModelPath.isEmpty || llamaModelPath.isEmpty {
@@ -453,7 +451,7 @@ struct ModelsTabView: View {
                 RecommendedModelCard(
                     model: model,
                     selectedPath: $whisperModelPath,
-                    allModels: store.whisperModels,
+                    allModels: sharedModelsStore.whisperModels,
                     downloader: sharedModelDownloader
                 )
             }
@@ -476,7 +474,7 @@ struct ModelsTabView: View {
                 RecommendedModelCard(
                     model: model,
                     selectedPath: $llamaModelPath,
-                    allModels: store.llmModels,
+                    allModels: sharedModelsStore.llmModels,
                     downloader: sharedModelDownloader
                 )
             }

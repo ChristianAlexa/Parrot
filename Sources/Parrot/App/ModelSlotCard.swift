@@ -144,7 +144,7 @@ struct ModelSlotCard: View {
     // MARK: - Actions
 
     private func browseForFile() {
-        Task {
+        Task { @MainActor in
             guard let url = await ModelManager.browseAndImport(extensions: fileExtensions) else { return }
             selectedPath = url.path
             sharedModelsStore.refresh()
