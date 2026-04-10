@@ -8,11 +8,15 @@ final class TranscriptionPipeline {
     private let audioCaptureManager = AudioCaptureManager()
     private let whisperManager = WhisperManager()
     private let llamaManager = LlamaManager()
-    private let textInjector = TextInjector()
     private var processingTask: Task<Void, Never>?
     private var recordingTask: Task<Void, Never>?
     private var modelLoadTask: Task<Void, Never>?
     private var stopRequested = false
+    /// True while a test recording is in progress. The pipeline is the only
+    /// thing that knows whether a given recording was initiated via the Test
+    /// button or the hotkey, so this flag is consulted solely to (a) guard
+    /// `stopTestRecording` against stale notifications and (b) tag emitted
+    /// result notifications with `isTest` so observers can route correctly.
     private var isTestMode = false
     private var isReloading = false
     private var testStartObserver: Any?
@@ -247,11 +251,6 @@ final class TranscriptionPipeline {
     }
 
     func stopRecordingAndProcess() {
-        if isTestMode {
-            stopTestRecording()
-            return
-        }
-
         if isReloading {
             // User released hotkey before reload finished — cancel
             stopRequested = true
@@ -307,14 +306,14 @@ final class TranscriptionPipeline {
                 try await audioCaptureManager.startCapture(deviceID: deviceID)
 
                 if stopRequested {
-                    processTestRecording()
+                    processSamples()
                 }
             } catch {
                 logger.error("Test recording failed: \(error.localizedDescription)")
                 NotificationCenter.default.post(
-                    name: .testTranscriptionError,
+                    name: .transcriptionFailed,
                     object: nil,
-                    userInfo: ["message": error.localizedDescription]
+                    userInfo: ["message": error.localizedDescription, "isTest": true]
                 )
                 sharedAppState.status = .idle
                 isTestMode = false
@@ -331,12 +330,8 @@ final class TranscriptionPipeline {
 
         Task {
             await pendingTask?.value
-            processTestRecording()
+            processSamples()
         }
-    }
-
-    private func processTestRecording() {
-        processSamples()
     }
 
     /// Shared processing path for both normal and test recordings.
@@ -346,13 +341,13 @@ final class TranscriptionPipeline {
         llamaManager.cancelInference()
         processingTask?.cancel()
 
-        let testMode = isTestMode
+        let isTest = isTestMode
         let llmEnabled = UserDefaults.standard.bool(forKey: DefaultsKey.llmCleanupEnabled)
         let tone = TonePreset.current
         let whisperPrompt = PersonalDictionary.whisperPrompt()
 
         processingTask = Task {
-            defer { if testMode { isTestMode = false } }
+            defer { isTestMode = false }
 
             let samples = await audioCaptureManager.stopCapture()
 
@@ -360,26 +355,22 @@ final class TranscriptionPipeline {
             case .valid:
                 break
             case .tooShort:
-                handleRejection("Too short", samples: samples, testMode: testMode)
+                handleRejection("Too short", samples: samples, isTest: isTest)
                 return
             case .tooQuiet:
-                handleRejection("No audio detected — check microphone", samples: samples, testMode: testMode)
+                handleRejection("No audio detected — check microphone", samples: samples, isTest: isTest)
                 return
             }
 
             do {
                 let rawTranscript = try await whisperManager.transcribe(samples: samples, initialPrompt: whisperPrompt)
 
-                if !testMode {
-                    logger.info("Raw transcript: \(rawTranscript)")
-                    ActivityLog.shared.log(.info, category: "Pipeline", message: "Raw transcript: \(rawTranscript)")
-                }
+                logger.info("Raw transcript: \(rawTranscript)")
+                ActivityLog.shared.log(.info, category: "Pipeline", message: "Raw transcript: \(rawTranscript)")
 
                 guard !Task.isCancelled else {
-                    if !testMode {
-                        logger.info("Processing cancelled after transcription")
-                        ActivityLog.shared.log(.info, category: "Pipeline", message: "Processing cancelled after transcription")
-                    }
+                    logger.info("Processing cancelled after transcription")
+                    ActivityLog.shared.log(.info, category: "Pipeline", message: "Processing cancelled after transcription")
                     sharedAppState.status = .idle
                     return
                 }
@@ -389,16 +380,13 @@ final class TranscriptionPipeline {
                     : nil
                 let finalText = Self.applyCleanup(rawTranscript: rawTranscript, llmResult: llmResult, tone: tone)
 
-                if !testMode {
-                    textInjector.inject(finalText)
-                }
                 NotificationCenter.default.post(
-                    name: .testTranscriptionResult,
+                    name: .transcriptionCompleted,
                     object: nil,
-                    userInfo: ["text": finalText]
+                    userInfo: ["text": finalText, "isTest": isTest]
                 )
 
-                if !testMode {
+                if !isTest {
                     let wordCount = finalText.split(separator: " ").count
                     let duration = Double(samples.count) / 16000.0
                     DictationStats.record(wordCount: wordCount, durationSeconds: duration, tonePreset: tone.rawValue)
@@ -410,41 +398,32 @@ final class TranscriptionPipeline {
                 sharedAppState.status = .idle
 
             } catch {
-                if testMode {
-                    NotificationCenter.default.post(
-                        name: .testTranscriptionError,
-                        object: nil,
-                        userInfo: ["message": error.localizedDescription]
-                    )
-                    sharedAppState.status = .idle
-                } else {
-                    logger.error("Processing failed: \(error.localizedDescription)")
-                    ActivityLog.shared.log(.error, category: "Pipeline", message: "Processing failed: \(error.localizedDescription)")
-                    sharedAppState.status = .error(error.localizedDescription)
-                }
+                logger.error("Processing failed: \(error.localizedDescription)")
+                ActivityLog.shared.log(.error, category: "Pipeline", message: "Processing failed: \(error.localizedDescription)")
+                sharedAppState.status = .error(error.localizedDescription)
+                NotificationCenter.default.post(
+                    name: .transcriptionFailed,
+                    object: nil,
+                    userInfo: ["message": error.localizedDescription, "isTest": isTest]
+                )
             }
         }
     }
 
-    private func handleRejection(_ reason: String, samples: [Float], testMode: Bool) {
-        if testMode {
-            NotificationCenter.default.post(
-                name: .testTranscriptionError,
-                object: nil,
-                userInfo: ["message": reason]
-            )
-            sharedAppState.status = .idle
-            isTestMode = false
-        } else {
-            logger.warning("Recording rejected (samples: \(samples.count)) — \(reason)")
-            ActivityLog.shared.log(.warning, category: "Pipeline", message: "Recording rejected (samples: \(samples.count)) — \(reason)")
-            sharedAppState.status = .error(reason)
-            NSSound(named: "Basso")?.play()
-            Task {
-                try? await Task.sleep(for: .seconds(3))
-                if case .error = sharedAppState.status {
-                    sharedAppState.status = .idle
-                }
+    private func handleRejection(_ reason: String, samples: [Float], isTest: Bool) {
+        logger.warning("Recording rejected (samples: \(samples.count)) — \(reason)")
+        ActivityLog.shared.log(.warning, category: "Pipeline", message: "Recording rejected (samples: \(samples.count)) — \(reason)")
+        sharedAppState.status = .error(reason)
+        NSSound(named: "Basso")?.play()
+        NotificationCenter.default.post(
+            name: .transcriptionFailed,
+            object: nil,
+            userInfo: ["message": reason, "isTest": isTest]
+        )
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            if case .error = sharedAppState.status {
+                sharedAppState.status = .idle
             }
         }
     }

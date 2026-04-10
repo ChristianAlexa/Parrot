@@ -352,28 +352,26 @@ struct RecordTabView: View {
         .padding(.vertical, 12)
         .onAppear {
             deviceManager.ensureSetup()
-            sharedAppState.isTestModeActive = true
-        }
-        .onDisappear {
-            sharedAppState.isTestModeActive = false
         }
         .onChange(of: sharedAppState.status) { _, newStatus in
-            if sharedAppState.isTestModeActive {
-                if newStatus == .recording {
-                    testOutput = ""
-                    isTestRecording = true
-                } else if newStatus != .processing && isTestRecording {
-                    isTestRecording = false
-                }
+            // Reset isTestRecording if the pipeline left the recording/processing
+            // states unexpectedly (e.g. an error). Do NOT flip it to `true` from
+            // status changes — the button tap is the only path that should mark
+            // a recording as a test, otherwise a normal hotkey dictation that
+            // starts while the Record tab is visible would hijack the test UI.
+            if isTestRecording && newStatus != .recording && newStatus != .processing {
+                isTestRecording = false
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .testTranscriptionResult)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: .transcriptionCompleted)) { notification in
+            guard notification.userInfo?["isTest"] as? Bool == true else { return }
             if let text = notification.userInfo?["text"] as? String {
                 testOutput = text
             }
             isTestRecording = false
         }
-        .onReceive(NotificationCenter.default.publisher(for: .testTranscriptionError)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: .transcriptionFailed)) { notification in
+            guard notification.userInfo?["isTest"] as? Bool == true else { return }
             if let message = notification.userInfo?["message"] as? String {
                 testOutput = "Error: \(message)"
             }

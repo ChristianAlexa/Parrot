@@ -5,8 +5,8 @@ extension Notification.Name {
     static let inferenceSettingsDidChange = Notification.Name("inferenceSettingsDidChange")
     static let testRecordingStarted = Notification.Name("testRecordingStarted")
     static let testRecordingStopped = Notification.Name("testRecordingStopped")
-    static let testTranscriptionResult = Notification.Name("testTranscriptionResult")
-    static let testTranscriptionError = Notification.Name("testTranscriptionError")
+    static let transcriptionCompleted = Notification.Name("transcriptionCompleted")
+    static let transcriptionFailed = Notification.Name("transcriptionFailed")
     static let unloadModelsRequested = Notification.Name("unloadModelsRequested")
     static let loadModelsRequested = Notification.Name("loadModelsRequested")
 }
@@ -141,6 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let logger = Logger(subsystem: "com.parrot", category: "App")
     private let pipeline = TranscriptionPipeline()
     private let floatingBarController = FloatingBarController()
+    private let textInjector = TextInjector()
     private lazy var hotkeyManager: HotkeyManager = {
         let saved = UserDefaults.standard.integer(forKey: DefaultsKey.hotkeyKeyCode)
         let savedMods = UserDefaults.standard.integer(forKey: DefaultsKey.hotkeyModifiers)
@@ -164,6 +165,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             observeSetupCompletion()
         }
         observeSettingsChanges()
+        observeTranscriptionCompleted()
+    }
+
+    private func observeTranscriptionCompleted() {
+        NotificationCenter.default.addObserver(
+            forName: .transcriptionCompleted,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                let isTest = notification.userInfo?["isTest"] as? Bool ?? false
+                guard !isTest else { return }
+                guard let text = notification.userInfo?["text"] as? String else { return }
+                self.textInjector.inject(text)
+            }
+        }
     }
 
     private func observeSetupCompletion() {

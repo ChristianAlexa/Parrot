@@ -21,7 +21,6 @@ final class AppState {
     var status: AppStatus = .idle
     var isModelsLoaded = false
     var modelLoadingProgress: String = ""
-    var isTestModeActive = false
 
     var accessibilityGranted: Bool = AXIsProcessTrusted()
     var microphoneAuthorized: Bool = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
