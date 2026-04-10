@@ -4,14 +4,12 @@ import AVFoundation
 @MainActor
 struct SetupFlowView: View {
     @Bindable private var appState = sharedAppState
-    @AppStorage("whisperModelPath") private var whisperModelPath: String = ""
-    @AppStorage("llamaModelPath") private var llamaModelPath: String = ""
+    @AppStorage(DefaultsKey.whisperModelPath) private var whisperModelPath: String = ""
+    @AppStorage(DefaultsKey.llamaModelPath) private var llamaModelPath: String = ""
 
-    @State private var whisperModels: [URL] = []
-    @State private var llmModels: [URL] = []
     @State private var pollTimer: Timer?
 
-    private let modelManager = ModelManager()
+    private let store = sharedModelsStore
 
     private var stepIndex: Int {
         switch appState.currentSetupStep {
@@ -284,8 +282,7 @@ struct SetupFlowView: View {
                 RecommendedModelCard(
                     model: model,
                     selectedPath: $whisperModelPath,
-                    allModels: whisperModels,
-                    onModelsChanged: refreshModels,
+                    allModels: store.whisperModels,
                     downloader: sharedModelDownloader
                 )
             }
@@ -309,13 +306,11 @@ struct SetupFlowView: View {
                 RecommendedModelCard(
                     model: model,
                     selectedPath: $llamaModelPath,
-                    allModels: llmModels,
-                    onModelsChanged: refreshModels,
+                    allModels: store.llmModels,
                     downloader: sharedModelDownloader
                 )
             }
         }
-        .onAppear { refreshModels() }
         .onChange(of: whisperModelPath) { _, _ in
             NotificationCenter.default.post(name: .inferenceSettingsDidChange, object: nil)
         }
@@ -369,11 +364,6 @@ struct SetupFlowView: View {
         try? task.run()
         task.waitUntilExit()
         _exit(0)
-    }
-
-    private func refreshModels() {
-        whisperModels = modelManager.availableWhisperModels()
-        llmModels = modelManager.availableLLMModels()
     }
 
     private func startPolling() {

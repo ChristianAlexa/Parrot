@@ -6,7 +6,6 @@ struct ModelSlotCard: View {
     let fileExtensions: [String]
     @Binding var selectedPath: String
     let availableModels: [URL]
-    let onModelsChanged: () -> Void
 
     @State private var isDropTargeted = false
     @State private var isImporting = false
@@ -148,7 +147,7 @@ struct ModelSlotCard: View {
         Task {
             guard let url = await ModelManager.browseAndImport(extensions: fileExtensions) else { return }
             selectedPath = url.path
-            onModelsChanged()
+            sharedModelsStore.refresh()
         }
     }
 
@@ -180,7 +179,7 @@ struct ModelSlotCard: View {
                 await MainActor.run {
                     selectedPath = dest.path
                     isImporting = false
-                    onModelsChanged()
+                    sharedModelsStore.refresh()
                 }
             } catch {
                 await MainActor.run {

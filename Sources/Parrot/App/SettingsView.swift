@@ -423,13 +423,10 @@ struct SettingsTabView: View {
 // MARK: - Models Tab
 
 struct ModelsTabView: View {
-    @AppStorage("whisperModelPath") private var whisperModelPath: String = ""
-    @AppStorage("llamaModelPath") private var llamaModelPath: String = ""
+    @AppStorage(DefaultsKey.whisperModelPath) private var whisperModelPath: String = ""
+    @AppStorage(DefaultsKey.llamaModelPath) private var llamaModelPath: String = ""
 
-    @State private var whisperModels: [URL] = []
-    @State private var llmModels: [URL] = []
-
-    private let modelManager = ModelManager()
+    private let store = sharedModelsStore
 
     var body: some View {
         VStack(spacing: 10) {
@@ -456,8 +453,7 @@ struct ModelsTabView: View {
                 RecommendedModelCard(
                     model: model,
                     selectedPath: $whisperModelPath,
-                    allModels: whisperModels,
-                    onModelsChanged: refreshModels,
+                    allModels: store.whisperModels,
                     downloader: sharedModelDownloader
                 )
             }
@@ -480,25 +476,18 @@ struct ModelsTabView: View {
                 RecommendedModelCard(
                     model: model,
                     selectedPath: $llamaModelPath,
-                    allModels: llmModels,
-                    onModelsChanged: refreshModels,
+                    allModels: store.llmModels,
                     downloader: sharedModelDownloader
                 )
             }
         }
         .padding()
-        .onAppear { refreshModels() }
         .onChange(of: whisperModelPath) { _, _ in
             NotificationCenter.default.post(name: .inferenceSettingsDidChange, object: nil)
         }
         .onChange(of: llamaModelPath) { _, _ in
             NotificationCenter.default.post(name: .inferenceSettingsDidChange, object: nil)
         }
-    }
-
-    private func refreshModels() {
-        whisperModels = modelManager.availableWhisperModels()
-        llmModels = modelManager.availableLLMModels()
     }
 }
 

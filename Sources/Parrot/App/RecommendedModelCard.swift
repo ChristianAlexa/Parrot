@@ -5,17 +5,13 @@ struct RecommendedModelCard: View {
     let model: RecommendedModel
     @Binding var selectedPath: String
     let allModels: [URL]
-    let onModelsChanged: () -> Void
 
     @State private var downloader: ModelDownloader
 
-    private let modelManager = ModelManager()
-
-    init(model: RecommendedModel, selectedPath: Binding<String>, allModels: [URL], onModelsChanged: @escaping () -> Void, downloader: ModelDownloader) {
+    init(model: RecommendedModel, selectedPath: Binding<String>, allModels: [URL], downloader: ModelDownloader) {
         self.model = model
         self._selectedPath = selectedPath
         self.allModels = allModels
-        self.onModelsChanged = onModelsChanged
         self._downloader = State(initialValue: downloader)
     }
 
@@ -63,8 +59,7 @@ struct RecommendedModelCard: View {
                         icon: model.category == .whisper ? "waveform" : "cpu",
                         fileExtensions: model.category == .whisper ? ["bin"] : ["gguf"],
                         selectedPath: $selectedPath,
-                        availableModels: allModels,
-                        onModelsChanged: onModelsChanged
+                        availableModels: allModels
                     )
                 }
                 // Other catalog entries are hidden when a model is already selected
@@ -180,7 +175,7 @@ struct RecommendedModelCard: View {
                         let path = downloader.modelPath(for: model)
                         guard FileManager.default.fileExists(atPath: path.path) else { return }
                         selectedPath = path.path
-                        onModelsChanged()
+                        sharedModelsStore.refresh()
                     }
                     .font(.caption)
                     .buttonStyle(.borderedProminent)
@@ -235,7 +230,7 @@ struct RecommendedModelCard: View {
         Task {
             guard let url = await ModelManager.browseAndImport(extensions: extensions) else { return }
             selectedPath = url.path
-            onModelsChanged()
+            sharedModelsStore.refresh()
         }
     }
 

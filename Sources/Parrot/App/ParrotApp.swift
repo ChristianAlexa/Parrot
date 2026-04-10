@@ -153,6 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ActivityLog.shared.log(.info, category: "App", message: "Parrot launched")
 
         modelManager.ensureModelsDirectoryExists()
+        sharedModelsStore.refresh()
         sharedAppState.refreshSetupState()
 
         if sharedAppState.currentSetupStep == .complete {
