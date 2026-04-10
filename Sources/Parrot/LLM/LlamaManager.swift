@@ -90,12 +90,12 @@ final class LlamaManager {
         sampler = loadedSampler
     }
 
-    func cleanup(rawTranscript: String) async throws -> String {
+    func cleanup(rawTranscript: String, tone: TonePreset) async throws -> String {
         guard let model, let context, let sampler else {
             throw LlamaError.modelNotLoaded
         }
 
-        let prompt = CleanupPrompt.buildLlamaPrompt(rawTranscript: rawTranscript)
+        let prompt = CleanupPrompt.buildLlamaPrompt(rawTranscript: rawTranscript, tone: tone)
         logger.info("Cleaning up transcript (\(rawTranscript.count) chars)...")
         ActivityLog.shared.log(.info, category: "Llama", message: "Cleaning up transcript (\(rawTranscript.count) chars)...")
 

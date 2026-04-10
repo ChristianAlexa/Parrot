@@ -40,35 +40,17 @@ final class TonePresetTests: XCTestCase {
         XCTAssertEqual(TonePreset.lowkey.postProcess("hello  world"), "hello world")
     }
 
-    // MARK: - postProcess (other presets pass through)
+    // MARK: - postProcess (neutral)
 
     func testNeutralPassesThrough() {
         let input = "Hello, World! It's fine."
         XCTAssertEqual(TonePreset.neutral.postProcess(input), input)
     }
 
-    func testProfessionalPassesThrough() {
-        let input = "Hello, World! It's fine."
-        XCTAssertEqual(TonePreset.professional.postProcess(input), input)
-    }
-
-    func testCasualPassesThrough() {
-        let input = "Hello, World! It's fine."
-        XCTAssertEqual(TonePreset.casual.postProcess(input), input)
-    }
-
-    func testTechnicalPassesThrough() {
-        let input = "Hello, World! It's fine."
-        XCTAssertEqual(TonePreset.technical.postProcess(input), input)
-    }
-
     // MARK: - displayName
 
     func testDisplayNames() {
         XCTAssertEqual(TonePreset.neutral.displayName, "Neutral")
-        XCTAssertEqual(TonePreset.professional.displayName, "Professional")
-        XCTAssertEqual(TonePreset.casual.displayName, "Casual")
-        XCTAssertEqual(TonePreset.technical.displayName, "Technical")
         XCTAssertEqual(TonePreset.lowkey.displayName, "Lowkey")
     }
 
@@ -84,7 +66,7 @@ final class TonePresetTests: XCTestCase {
         }
     }
 
-    // MARK: - Trailing punctuation (neutral, professional, technical)
+    // MARK: - Trailing punctuation (neutral)
 
     func testNeutralAddsPeriodWhenMissing() {
         XCTAssertEqual(TonePreset.neutral.postProcess("Hello world"), "Hello world.")
@@ -102,23 +84,11 @@ final class TonePresetTests: XCTestCase {
         XCTAssertEqual(TonePreset.neutral.postProcess("Wow!"), "Wow!")
     }
 
-    func testProfessionalAddsPeriodWhenMissing() {
-        XCTAssertEqual(TonePreset.professional.postProcess("Hello world"), "Hello world.")
-    }
-
-    func testTechnicalAddsPeriodWhenMissing() {
-        XCTAssertEqual(TonePreset.technical.postProcess("Hello world"), "Hello world.")
-    }
-
-    func testCasualDoesNotAddPeriod() {
-        XCTAssertEqual(TonePreset.casual.postProcess("Hello world"), "Hello world")
-    }
-
     func testTrailingPunctuationOnEmptyString() {
         XCTAssertEqual(TonePreset.neutral.postProcess(""), "")
     }
 
-    // MARK: - Capitalize first letter (neutral, professional, technical)
+    // MARK: - Capitalize first letter (neutral)
 
     func testNeutralCapitalizesFirstLetter() {
         XCTAssertEqual(TonePreset.neutral.postProcess("hello world."), "Hello world.")
@@ -128,23 +98,11 @@ final class TonePresetTests: XCTestCase {
         XCTAssertEqual(TonePreset.neutral.postProcess("Hello world."), "Hello world.")
     }
 
-    func testProfessionalCapitalizesFirstLetter() {
-        XCTAssertEqual(TonePreset.professional.postProcess("hello world."), "Hello world.")
-    }
-
-    func testTechnicalCapitalizesFirstLetter() {
-        XCTAssertEqual(TonePreset.technical.postProcess("hello world."), "Hello world.")
-    }
-
-    func testCasualDoesNotCapitalize() {
-        XCTAssertEqual(TonePreset.casual.postProcess("hello world"), "hello world")
-    }
-
     func testLowkeyRemainsLowercase() {
         XCTAssertEqual(TonePreset.lowkey.postProcess("Hello World"), "hello world")
     }
 
-    // MARK: - Collapse double spaces (neutral, professional, technical)
+    // MARK: - Collapse double spaces (neutral)
 
     func testNeutralCollapsesDoubleSpaces() {
         XCTAssertEqual(TonePreset.neutral.postProcess("Hello  world."), "Hello world.")
@@ -152,13 +110,5 @@ final class TonePresetTests: XCTestCase {
 
     func testNeutralCollapsesMultipleSpaces() {
         XCTAssertEqual(TonePreset.neutral.postProcess("Hello   world   today."), "Hello world today.")
-    }
-
-    func testProfessionalCollapsesDoubleSpaces() {
-        XCTAssertEqual(TonePreset.professional.postProcess("Hello  world."), "Hello world.")
-    }
-
-    func testCasualDoesNotCollapseSpaces() {
-        XCTAssertEqual(TonePreset.casual.postProcess("Hello  world"), "Hello  world")
     }
 }

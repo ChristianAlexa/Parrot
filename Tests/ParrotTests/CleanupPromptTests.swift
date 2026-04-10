@@ -3,11 +3,6 @@ import XCTest
 
 final class CleanupPromptTests: XCTestCase {
 
-    override func tearDown() {
-        UserDefaults.standard.removeObject(forKey: "tonePreset")
-        super.tearDown()
-    }
-
     // MARK: - userMessage
 
     func testUserMessageWrapsTranscriptInTags() {
@@ -20,32 +15,28 @@ final class CleanupPromptTests: XCTestCase {
     // MARK: - systemMessage
 
     func testSystemMessageContainsBaseRules() {
-        UserDefaults.standard.removeObject(forKey: "tonePreset")
-        let msg = CleanupPrompt.systemMessage
+        let msg = CleanupPrompt.systemMessage(tone: .neutral)
         XCTAssertTrue(msg.contains("Fix punctuation, capitalization, and spacing"))
         XCTAssertTrue(msg.contains("Remove filler words"))
         XCTAssertTrue(msg.contains("Do NOT add, remove, or rephrase content"))
     }
 
     func testSystemMessageIncludesToneInstruction() {
-        UserDefaults.standard.set("professional", forKey: "tonePreset")
-        let msg = CleanupPrompt.systemMessage
-        XCTAssertTrue(msg.contains("professional and polished"))
+        let msg = CleanupPrompt.systemMessage(tone: .lowkey)
+        XCTAssertTrue(msg.contains("Format like a casual text message"))
     }
 
     func testSystemMessageExcludesToneInstructionForNeutral() {
-        UserDefaults.standard.set("neutral", forKey: "tonePreset")
-        let msg = CleanupPrompt.systemMessage
+        let msg = CleanupPrompt.systemMessage(tone: .neutral)
         XCTAssertTrue(msg.contains("Preserve the speaker's intended meaning, tone, and style exactly"))
-        XCTAssertFalse(msg.contains("professional and polished"))
+        XCTAssertFalse(msg.contains("Format like a casual text message"))
     }
 
     // MARK: - Tone instruction integration (self-extending)
 
     func testEveryNonNeutralToneAppearsInSystemMessage() {
         for preset in TonePreset.allCases where preset != .neutral {
-            UserDefaults.standard.set(preset.rawValue, forKey: "tonePreset")
-            let msg = CleanupPrompt.systemMessage
+            let msg = CleanupPrompt.systemMessage(tone: preset)
             guard let instruction = preset.instruction else {
                 XCTFail("\(preset.displayName) has no instruction but is non-neutral")
                 continue
@@ -58,8 +49,7 @@ final class CleanupPromptTests: XCTestCase {
     }
 
     func testEveryAlwaysOnRuleAppearsInSystemMessage() {
-        UserDefaults.standard.removeObject(forKey: "tonePreset")
-        let msg = CleanupPrompt.systemMessage
+        let msg = CleanupPrompt.systemMessage(tone: .neutral)
         for rule in CleanupRule.alwaysOnRules {
             XCTAssertTrue(
                 msg.contains(rule.instruction),
@@ -71,7 +61,7 @@ final class CleanupPromptTests: XCTestCase {
     // MARK: - buildLlamaPrompt
 
     func testLlamaPromptContainsChatTemplate() {
-        let result = CleanupPrompt.buildLlamaPrompt(rawTranscript: "test")
+        let result = CleanupPrompt.buildLlamaPrompt(rawTranscript: "test", tone: .neutral)
         XCTAssertTrue(result.contains("<|begin_of_text|>"))
         XCTAssertTrue(result.contains("<|start_header_id|>system<|end_header_id|>"))
         XCTAssertTrue(result.contains("<|start_header_id|>user<|end_header_id|>"))
@@ -79,7 +69,7 @@ final class CleanupPromptTests: XCTestCase {
     }
 
     func testLlamaPromptContainsTranscript() {
-        let result = CleanupPrompt.buildLlamaPrompt(rawTranscript: "hello world")
+        let result = CleanupPrompt.buildLlamaPrompt(rawTranscript: "hello world", tone: .neutral)
         XCTAssertTrue(result.contains("<transcript>"))
         XCTAssertTrue(result.contains("hello world"))
     }

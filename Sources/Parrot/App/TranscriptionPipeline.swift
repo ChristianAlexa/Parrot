@@ -347,6 +347,9 @@ final class TranscriptionPipeline {
         processingTask?.cancel()
 
         let testMode = isTestMode
+        let llmEnabled = UserDefaults.standard.bool(forKey: DefaultsKey.llmCleanupEnabled)
+        let tone = TonePreset.current
+        let whisperPrompt = PersonalDictionary.whisperPrompt()
 
         processingTask = Task {
             defer { if testMode { isTestMode = false } }
@@ -365,7 +368,7 @@ final class TranscriptionPipeline {
             }
 
             do {
-                let rawTranscript = try await whisperManager.transcribe(samples: samples, initialPrompt: PersonalDictionary.whisperPrompt())
+                let rawTranscript = try await whisperManager.transcribe(samples: samples, initialPrompt: whisperPrompt)
 
                 if !testMode {
                     logger.info("Raw transcript: \(rawTranscript)")
@@ -381,11 +384,10 @@ final class TranscriptionPipeline {
                     return
                 }
 
-                let llmEnabled = UserDefaults.standard.bool(forKey: "llmCleanupEnabled")
                 let llmResult: String? = (llmEnabled && llamaManager.isModelLoaded)
-                    ? try await llamaManager.cleanup(rawTranscript: rawTranscript)
+                    ? try await llamaManager.cleanup(rawTranscript: rawTranscript, tone: tone)
                     : nil
-                let finalText = Self.applyCleanup(rawTranscript: rawTranscript, llmResult: llmResult, tone: TonePreset.current)
+                let finalText = Self.applyCleanup(rawTranscript: rawTranscript, llmResult: llmResult, tone: tone)
 
                 if !testMode {
                     textInjector.inject(finalText)
@@ -399,7 +401,7 @@ final class TranscriptionPipeline {
                 if !testMode {
                     let wordCount = finalText.split(separator: " ").count
                     let duration = Double(samples.count) / 16000.0
-                    DictationStats.record(wordCount: wordCount, durationSeconds: duration, tonePreset: TonePreset.current.rawValue)
+                    DictationStats.record(wordCount: wordCount, durationSeconds: duration, tonePreset: tone.rawValue)
 
                     let glass = NSSound(named: "Glass")
                     glass?.volume = 0.2

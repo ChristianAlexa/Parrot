@@ -108,33 +108,14 @@ final class TranscriptionPipelineTests: XCTestCase {
         XCTAssertEqual(withoutLLM, "it didnt work.")
     }
 
-    func testApplyCleanupOtherTonesPassThrough() {
-        for tone in [TonePreset.professional, .casual, .technical] {
-            let result = TranscriptionPipeline.applyCleanup(
-                rawTranscript: "raw",
-                llmResult: "Hello, World!",
-                tone: tone
-            )
-            XCTAssertEqual(result, "Hello, World!", "\(tone.displayName) should pass through")
-        }
-    }
-
     // MARK: - Tone selection wiring (end-to-end deterministic chain)
 
     func testToneSelectionFlowsThroughEntireChain() {
         let sampleInput = "Well, I don't think it's working!"
 
         for preset in TonePreset.allCases {
-            UserDefaults.standard.set(preset.rawValue, forKey: "tonePreset")
-
-            // 1. UserDefaults → TonePreset.current
-            XCTAssertEqual(
-                TonePreset.current, preset,
-                "\(preset.displayName): TonePreset.current should match UserDefaults"
-            )
-
-            // 2. Tone instruction → LLM prompt
-            let prompt = CleanupPrompt.buildLlamaPrompt(rawTranscript: sampleInput)
+            // 1. Tone instruction → LLM prompt
+            let prompt = CleanupPrompt.buildLlamaPrompt(rawTranscript: sampleInput, tone: preset)
             if let instruction = preset.instruction {
                 XCTAssertTrue(
                     prompt.contains(instruction),
@@ -142,7 +123,7 @@ final class TranscriptionPipelineTests: XCTestCase {
                 )
             }
 
-            // 3. applyCleanup honors tone with LLM result
+            // 2. applyCleanup honors tone with LLM result
             let withLLM = TranscriptionPipeline.applyCleanup(
                 rawTranscript: sampleInput,
                 llmResult: sampleInput,
@@ -153,7 +134,7 @@ final class TranscriptionPipelineTests: XCTestCase {
                 "\(preset.displayName): applyCleanup with LLM should match postProcess"
             )
 
-            // 4. applyCleanup honors tone WITHOUT LLM (the exact regression path)
+            // 3. applyCleanup honors tone WITHOUT LLM (the exact regression path)
             let withoutLLM = TranscriptionPipeline.applyCleanup(
                 rawTranscript: sampleInput,
                 llmResult: nil,
@@ -164,8 +145,6 @@ final class TranscriptionPipelineTests: XCTestCase {
                 "\(preset.displayName): applyCleanup WITHOUT LLM should match postProcess"
             )
         }
-
-        UserDefaults.standard.removeObject(forKey: "tonePreset")
     }
 
     func testEveryToneProducesDistinctExpectedOutput() {

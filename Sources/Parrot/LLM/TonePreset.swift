@@ -3,9 +3,6 @@ import Foundation
 /// Tone presets that adjust the LLM cleanup output style.
 enum TonePreset: String, CaseIterable, Identifiable {
     case neutral
-    case professional
-    case casual
-    case technical
     case lowkey
 
     var id: String { rawValue }
@@ -13,9 +10,6 @@ enum TonePreset: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .neutral: "Neutral"
-        case .professional: "Professional"
-        case .casual: "Casual"
-        case .technical: "Technical"
         case .lowkey: "Lowkey"
         }
     }
@@ -25,12 +19,6 @@ enum TonePreset: String, CaseIterable, Identifiable {
         switch self {
         case .neutral:
             nil
-        case .professional:
-            "Adjust the tone to be professional and polished — use complete sentences, avoid slang, and prefer formal phrasing while keeping the original meaning"
-        case .casual:
-            "Keep the tone casual and conversational — contractions are fine, relaxed punctuation is okay, preserve the natural spoken feel"
-        case .technical:
-            "Preserve all technical terminology, acronyms, and domain-specific jargon exactly as spoken — do not simplify or rephrase technical content"
         case .lowkey:
             "Format like a casual text message — all lowercase, no apostrophes, minimal punctuation, do not change the actual words or use slang"
         }
@@ -48,13 +36,11 @@ enum TonePreset: String, CaseIterable, Identifiable {
             result = result.replacingOccurrences(of: ",", with: "")
             result = result.replacingOccurrences(of: "!", with: "")
             return result
-        case .neutral, .professional, .technical:
+        case .neutral:
             var result = Self.collapseWhitespace(text)
             result = Self.capitalizeFirst(result)
             result = Self.ensureTrailingPunctuation(result)
             return result
-        case .casual:
-            return text
         }
     }
 

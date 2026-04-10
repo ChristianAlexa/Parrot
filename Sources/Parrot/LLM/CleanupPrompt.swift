@@ -1,8 +1,7 @@
 import Foundation
 
 enum CleanupPrompt {
-    static var systemMessage: String {
-        let tone = TonePreset.current
+    static func systemMessage(tone: TonePreset) -> String {
         let preserveRule = tone == .neutral
             ? "Preserve the speaker's intended meaning, tone, and style exactly"
             : "Preserve the speaker's intended meaning exactly"
@@ -38,11 +37,11 @@ enum CleanupPrompt {
     }
 
     /// Llama 3 chat-formatted prompt for local inference via llama.cpp.
-    static func buildLlamaPrompt(rawTranscript: String) -> String {
+    static func buildLlamaPrompt(rawTranscript: String, tone: TonePreset) -> String {
         """
         <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
-        \(systemMessage)<|eot_id|><|start_header_id|>user<|end_header_id|>
+        \(systemMessage(tone: tone))<|eot_id|><|start_header_id|>user<|end_header_id|>
 
         \(userMessage(rawTranscript: rawTranscript))<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 
