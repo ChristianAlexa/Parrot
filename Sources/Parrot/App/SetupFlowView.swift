@@ -8,6 +8,7 @@ struct SetupFlowView: View {
     @AppStorage(DefaultsKey.llamaModelPath) private var llamaModelPath: String = ""
 
     @State private var pollTimer: Timer?
+    @State private var accessibilityCleared: Bool = false
 
     private let store = sharedModelsStore
 
@@ -141,43 +142,51 @@ struct SetupFlowView: View {
                     .frame(maxWidth: 360)
             }
 
-            Button {
-                NSApp.keyWindow?.orderOut(nil)
-                PermissionsManager.shared.requestAccessibilityIfNeeded()
-            } label: {
-                Text("Open System Settings")
-                    .font(.system(.body, weight: .medium))
+            VStack(spacing: 10) {
+                Button {
+                    PermissionsManager.shared.resetAccessibility()
+                    accessibilityCleared = true
+                } label: {
+                    HStack(spacing: 6) {
+                        if accessibilityCleared {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        }
+                        Text(accessibilityCleared ? "1. Parrot Permissions Cleared" : "1. Clear Parrot Permissions")
+                            .font(.system(.body, weight: .medium))
+                    }
                     .frame(maxWidth: 240)
                     .padding(.vertical, 8)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+
+                Button {
+                    NSApp.keyWindow?.orderOut(nil)
+                    PermissionsManager.shared.requestAccessibilityIfNeeded()
+                } label: {
+                    Text("2. Open System Settings")
+                        .font(.system(.body, weight: .medium))
+                        .frame(maxWidth: 240)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(!accessibilityCleared)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
 
             Text("After granting access, this screen will update automatically.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
-
-            HStack(spacing: 4) {
-                Text("Permission not working?")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Button {
-                    PermissionsManager.shared.resetAccessibility()
-                } label: {
-                    Text("Reset and try again.")
-                        .font(.caption)
-                        .underline()
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-            }
         }
         .frame(maxWidth: .infinity)
         .onAppear {
             // Only reset accessibility TCC entry on a truly fresh install
-            // when permission hasn't already been granted
+            // when permission hasn't already been granted. When that happens,
+            // step 1 is effectively done — skip the user ahead to step 2.
             if whisperModelPath.isEmpty && llamaModelPath.isEmpty && !AXIsProcessTrusted() {
                 PermissionsManager.shared.resetAccessibility()
+                accessibilityCleared = true
             }
         }
     }
