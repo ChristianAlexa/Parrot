@@ -1,8 +1,10 @@
 import Cocoa
 import os
 
+@MainActor
 final class TextInjector {
     private let logger = Logger(subsystem: "com.parrot", category: "TextInjection")
+    private var pendingRestore: DispatchWorkItem?
 
     func inject(_ text: String) {
         guard !text.isEmpty else {
@@ -11,25 +13,43 @@ final class TextInjector {
             return
         }
 
+        // Cancel any pending restore from a previous inject — otherwise stacking
+        // timers would fight, and an old restore could clobber the new write.
+        pendingRestore?.cancel()
+        pendingRestore = nil
+
         // Save current clipboard contents
         let pasteboard = NSPasteboard.general
         let previousContents = pasteboard.string(forType: .string)
 
         // Set our text to clipboard with trailing space so consecutive
         // dictations don't run together (e.g. "word.Next" → "word. Next")
+        let injectedString = text + " "
         pasteboard.clearContents()
-        pasteboard.setString(text + " ", forType: .string)
+        pasteboard.setString(injectedString, forType: .string)
 
         // Simulate Cmd+V
         simulatePaste()
 
-        // Restore previous clipboard after a brief delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            pasteboard.clearContents()
-            if let previous = previousContents {
-                pasteboard.setString(previous, forType: .string)
+        // Restore previous clipboard after a brief delay. Check the pasteboard
+        // still holds exactly what we wrote before restoring — if anything else
+        // (user Cmd+C, clipboard manager, Universal Clipboard) has replaced it
+        // in the window, leave that content alone. String equality is stronger
+        // than changeCount comparison, which can false-positive on benign
+        // re-writes by paste-capturing apps.
+        let restore = DispatchWorkItem {
+            MainActor.assumeIsolated {
+                guard pasteboard.string(forType: .string) == injectedString else {
+                    return
+                }
+                pasteboard.clearContents()
+                if let previous = previousContents {
+                    pasteboard.setString(previous, forType: .string)
+                }
             }
         }
+        pendingRestore = restore
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: restore)
 
         logger.info("Injected \(text.count) characters")
         ActivityLog.shared.log(.info, category: "TextInjection", message: "Injected \(text.count) characters")
