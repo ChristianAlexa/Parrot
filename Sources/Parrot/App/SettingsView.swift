@@ -4,8 +4,8 @@ import UniformTypeIdentifiers
 // MARK: - Output Style Tab
 
 struct OutputStyleView: View {
-    @AppStorage("llmCleanupEnabled") private var llmCleanupEnabled: Bool = true
-    @AppStorage("tonePreset") private var tonePreset: String = TonePreset.neutral.rawValue
+    @AppStorage(DefaultsKey.llmCleanupEnabled) private var llmCleanupEnabled: Bool = true
+    @AppStorage(DefaultsKey.tonePreset) private var tonePreset: String = TonePreset.neutral.rawValue
 
     @State private var dictionaryWords: [String] = []
     @State private var newWord: String = ""
@@ -385,9 +385,9 @@ struct RecordTabView: View {
 // MARK: - Settings Tab
 
 struct SettingsTabView: View {
-    @AppStorage("audioFeedbackEnabled") private var audioFeedbackEnabled: Bool = true
-    @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
-    @AppStorage("showFloatingBar") private var showFloatingBar: Bool = true
+    @AppStorage(DefaultsKey.audioFeedbackEnabled) private var audioFeedbackEnabled: Bool = true
+    @AppStorage(DefaultsKey.launchAtLogin) private var launchAtLogin: Bool = false
+    @AppStorage(DefaultsKey.showFloatingBar) private var showFloatingBar: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {

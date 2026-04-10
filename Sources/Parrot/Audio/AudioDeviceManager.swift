@@ -17,7 +17,7 @@ final class AudioDeviceManager {
     var availableDevices: [AudioInputDevice] = []
     var selectedDeviceUID: String? {
         didSet {
-            UserDefaults.standard.set(selectedDeviceUID, forKey: "selectedMicrophoneUID")
+            UserDefaults.standard.set(selectedDeviceUID, forKey: DefaultsKey.selectedMicrophoneUID)
         }
     }
 
@@ -42,7 +42,7 @@ final class AudioDeviceManager {
     private var needsSetup = true
 
     init() {
-        selectedDeviceUID = UserDefaults.standard.string(forKey: "selectedMicrophoneUID")
+        selectedDeviceUID = UserDefaults.standard.string(forKey: DefaultsKey.selectedMicrophoneUID)
         // Defer refreshDevices() + installListeners() until first access
         // to avoid CoreAudio enumeration blocking app startup.
     }

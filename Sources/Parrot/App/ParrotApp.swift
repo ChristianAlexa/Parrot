@@ -142,8 +142,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let pipeline = TranscriptionPipeline()
     private let floatingBarController = FloatingBarController()
     private lazy var hotkeyManager: HotkeyManager = {
-        let saved = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
-        let savedMods = UserDefaults.standard.integer(forKey: "hotkeyModifiers")
+        let saved = UserDefaults.standard.integer(forKey: DefaultsKey.hotkeyKeyCode)
+        let savedMods = UserDefaults.standard.integer(forKey: DefaultsKey.hotkeyModifiers)
         return HotkeyManager(keyCode: UInt16(saved > 0 ? saved : 61), modifiers: UInt32(savedMods))
     }()
     private let modelManager = ModelManager()

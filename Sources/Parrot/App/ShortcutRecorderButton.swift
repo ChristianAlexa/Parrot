@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ShortcutRecorderButton: View {
-    @AppStorage("hotkeyKeyCode") private var hotkeyKeyCode: Int = 61
-    @AppStorage("hotkeyModifiers") private var hotkeyModifiers: Int = 0
+    @AppStorage(DefaultsKey.hotkeyKeyCode) private var hotkeyKeyCode: Int = 61
+    @AppStorage(DefaultsKey.hotkeyModifiers) private var hotkeyModifiers: Int = 0
     @State private var isRecording = false
     @State private var displayName: String = ""
 

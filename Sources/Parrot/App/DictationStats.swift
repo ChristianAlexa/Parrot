@@ -9,10 +9,8 @@ struct DictationStatsData: Codable {
 
 /// Tracks cumulative dictation statistics, persisted as JSON in UserDefaults.
 enum DictationStats {
-    private static let key = "dictationStats"
-
     static func load() -> DictationStatsData {
-        guard let json = UserDefaults.standard.string(forKey: key),
+        guard let json = UserDefaults.standard.string(forKey: DefaultsKey.dictationStats),
               let data = json.data(using: .utf8),
               let stats = try? JSONDecoder().decode(DictationStatsData.self, from: data)
         else { return DictationStatsData() }
@@ -23,7 +21,7 @@ enum DictationStats {
         guard let data = try? JSONEncoder().encode(stats),
               let json = String(data: data, encoding: .utf8)
         else { return }
-        UserDefaults.standard.set(json, forKey: key)
+        UserDefaults.standard.set(json, forKey: DefaultsKey.dictationStats)
     }
 
     static func record(wordCount: Int, durationSeconds: Double, tonePreset: String) {

@@ -108,8 +108,8 @@ final class TranscriptionPipeline {
             // If a newer loadModels() call arrived while we waited, bail out
             guard !Task.isCancelled else { return }
 
-            let whisperPath = UserDefaults.standard.string(forKey: "whisperModelPath") ?? ""
-            let llamaPath = UserDefaults.standard.string(forKey: "llamaModelPath") ?? ""
+            let whisperPath = UserDefaults.standard.string(forKey: DefaultsKey.whisperModelPath) ?? ""
+            let llamaPath = UserDefaults.standard.string(forKey: DefaultsKey.llamaModelPath) ?? ""
 
             async let whisperResult: Bool = {
                 guard !whisperPath.isEmpty else {

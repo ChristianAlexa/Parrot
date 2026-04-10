@@ -75,7 +75,7 @@ enum TonePreset: String, CaseIterable, Identifiable {
 
     /// Read the current selection from UserDefaults.
     static var current: TonePreset {
-        guard let raw = UserDefaults.standard.string(forKey: "tonePreset"),
+        guard let raw = UserDefaults.standard.string(forKey: DefaultsKey.tonePreset),
               let preset = TonePreset(rawValue: raw)
         else { return .neutral }
         return preset

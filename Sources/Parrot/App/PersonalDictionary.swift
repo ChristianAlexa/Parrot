@@ -4,10 +4,9 @@ import Foundation
 /// Stored as a JSON-encoded `[String]` in UserDefaults.
 enum PersonalDictionary {
     static let maxEntries = 200
-    private static let key = "personalDictionary"
 
     static func words() -> [String] {
-        guard let json = UserDefaults.standard.string(forKey: key),
+        guard let json = UserDefaults.standard.string(forKey: DefaultsKey.personalDictionary),
               let data = json.data(using: .utf8),
               let array = try? JSONDecoder().decode([String].self, from: data)
         else { return [] }
@@ -18,7 +17,7 @@ enum PersonalDictionary {
         guard let data = try? JSONEncoder().encode(words),
               let json = String(data: data, encoding: .utf8)
         else { return }
-        UserDefaults.standard.set(json, forKey: key)
+        UserDefaults.standard.set(json, forKey: DefaultsKey.personalDictionary)
     }
 
     /// Comma-separated string for Whisper's `initial_prompt` parameter.

@@ -12,7 +12,7 @@ final class FloatingBarController {
     private let panelSize = NSSize(width: 260, height: 36)
 
     private var isEnabled: Bool {
-        UserDefaults.standard.object(forKey: "showFloatingBar") as? Bool ?? true
+        UserDefaults.standard.object(forKey: DefaultsKey.showFloatingBar) as? Bool ?? true
     }
 
     func setup() {

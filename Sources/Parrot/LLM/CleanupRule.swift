@@ -29,7 +29,7 @@ enum CleanupRule: String, CaseIterable, Identifiable {
 
     /// UserDefaults key for this rule's toggle.
     var defaultsKey: String {
-        "cleanupRule_\(rawValue)"
+        DefaultsKey.cleanupRulePrefix + rawValue
     }
 
     var isEnabled: Bool {
