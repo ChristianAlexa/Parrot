@@ -351,7 +351,7 @@ struct RecordTabView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
         .onAppear {
-            deviceManager.refreshDevices()
+            deviceManager.ensureSetup()
             sharedAppState.isTestModeActive = true
         }
         .onDisappear {

@@ -71,10 +71,35 @@ final class AudioCaptureManager {
             self.processAudioBuffer(buffer, converter: audioConverter, targetFormat: targetFormat)
         }
 
-        try engine.start()
+        do {
+            try engine.start()
+        } catch let nsError as NSError {
+            // Engine start failed — usually because another process holds the
+            // mic exclusively, or the selected device disappeared. Clean up so
+            // the next attempt starts from a fresh state, then rethrow with a
+            // friendlier message.
+            let deviceDesc = deviceID.map { "\($0)" } ?? "system default"
+            let details = "deviceID=\(deviceDesc) inputFormat=\(inputFormat.sampleRate)Hz/\(inputFormat.channelCount)ch"
+            logger.error("Engine start failed: \(nsError.domain) code \(nsError.code) — \(nsError.localizedDescription) [\(details)]")
+            ActivityLog.shared.log(.error, category: "Audio", message: "Engine start failed: \(nsError.domain) code \(nsError.code) — \(nsError.localizedDescription) [\(details)]")
+            resetEngineState()
+            throw AudioCaptureError.engineStartFailed(underlying: nsError)
+        }
+
         isCapturing = true
         logger.info("Audio capture started (input: \(inputFormat.sampleRate)Hz → 16kHz mono)")
         ActivityLog.shared.log(.info, category: "Audio", message: "Audio capture started (input: \(inputFormat.sampleRate)Hz → 16kHz mono)")
+    }
+
+    /// Tears down any partial engine state from a failed `startCapture`.
+    /// Safe to call even if the engine was never running or the tap was never installed.
+    private func resetEngineState() {
+        engine.inputNode.removeTap(onBus: 0)
+        if engine.isRunning {
+            engine.stop()
+        }
+        engine.reset()
+        converter = nil
     }
 
     func stopCapture() async -> [Float] {
@@ -148,6 +173,7 @@ enum AudioCaptureError: Error, LocalizedError {
     case formatError
     case converterError
     case deviceNotAvailable
+    case engineStartFailed(underlying: NSError)
 
     var errorDescription: String? {
         switch self {
@@ -155,6 +181,8 @@ enum AudioCaptureError: Error, LocalizedError {
         case .formatError: return "Failed to create target audio format"
         case .converterError: return "Failed to create audio converter"
         case .deviceNotAvailable: return "Selected audio device is not available"
+        case .engineStartFailed:
+            return "Couldn't start the microphone. Another app may be using it — check Control Center's mic indicator and try again."
         }
     }
 }

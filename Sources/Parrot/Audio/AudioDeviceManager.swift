@@ -58,6 +58,15 @@ final class AudioDeviceManager {
         removeListeners()
     }
 
+    /// Ensures the device list has been loaded at least once and that CoreAudio
+    /// listeners are installed. After the first call, this is a no-op — the
+    /// listeners keep `availableDevices` fresh automatically. Use this from
+    /// view `onAppear`; use `refreshDevices()` only when the user explicitly
+    /// asks for a re-enumeration.
+    func ensureSetup() {
+        setupIfNeeded()
+    }
+
     func refreshDevices() {
         setupIfNeeded()
         reloadDevices()
@@ -84,8 +93,11 @@ final class AudioDeviceManager {
         }
 
         availableDevices = inputDevices
-        logger.info("Found \(inputDevices.count) input device(s)")
-        ActivityLog.shared.log(.info, category: "AudioDevice", message: "Found \(inputDevices.count) input device(s)")
+        let deviceSummary = inputDevices
+            .map { "\($0.name)\($0.isDefault ? "*" : "") [\($0.uid)]" }
+            .joined(separator: ", ")
+        logger.info("Found \(inputDevices.count) input device(s): \(deviceSummary)")
+        ActivityLog.shared.log(.info, category: "AudioDevice", message: "Found \(inputDevices.count) input device(s): \(deviceSummary)")
     }
 
     // MARK: - CoreAudio Queries

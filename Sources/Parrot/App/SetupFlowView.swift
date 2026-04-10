@@ -150,7 +150,7 @@ struct SetupFlowView: View {
                     HStack(spacing: 6) {
                         if accessibilityCleared {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(.white)
                         }
                         Text(accessibilityCleared ? "1. Parrot Permissions Cleared" : "1. Clear Parrot Permissions")
                             .font(.system(.body, weight: .medium))
