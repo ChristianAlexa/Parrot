@@ -1,3 +1,4 @@
+import ServiceManagement
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -394,6 +395,10 @@ struct SettingsTabView: View {
                     Toggle("Audio feedback (sounds on record start/stop)", isOn: $audioFeedbackEnabled)
                     Toggle("Show floating bar while recording", isOn: $showFloatingBar)
                     Toggle("Launch at login", isOn: $launchAtLogin)
+                        .onAppear { launchAtLogin = (SMAppService.mainApp.status == .enabled) }
+                        .onChange(of: launchAtLogin) { _, newValue in
+                            applyLaunchAtLogin(newValue)
+                        }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
@@ -415,6 +420,29 @@ struct SettingsTabView: View {
             .buttonStyle(.plain)
         }
         .padding()
+    }
+
+    private func applyLaunchAtLogin(_ enabled: Bool) {
+        let service = SMAppService.mainApp
+        do {
+            if enabled {
+                if service.status != .enabled {
+                    try service.register()
+                }
+            } else {
+                if service.status == .enabled {
+                    try service.unregister()
+                }
+            }
+        } catch {
+            ActivityLog.shared.log(
+                .error,
+                category: "Settings",
+                message: "Launch at login \(enabled ? "register" : "unregister") failed: \(error.localizedDescription)"
+            )
+            // Reconcile UI with actual system state
+            launchAtLogin = (service.status == .enabled)
+        }
     }
 }
 
