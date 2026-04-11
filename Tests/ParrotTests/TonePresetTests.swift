@@ -88,6 +88,47 @@ final class TonePresetTests: XCTestCase {
         XCTAssertEqual(TonePreset.neutral.postProcess(""), "")
     }
 
+    func testNeutralDoesNotAddPeriodToUrl() {
+        XCTAssertEqual(TonePreset.neutral.postProcess("Visit example.com"), "Visit example.com")
+    }
+
+    func testNeutralDoesNotAddPeriodToFullUrl() {
+        XCTAssertEqual(
+            TonePreset.neutral.postProcess("Open https://example.com"),
+            "Open https://example.com"
+        )
+    }
+
+    func testNeutralDoesNotAddPeriodToPath() {
+        XCTAssertEqual(
+            TonePreset.neutral.postProcess("Check /Users/foo/bar"),
+            "Check /Users/foo/bar"
+        )
+    }
+
+    func testNeutralDoesNotAddPeriodToCodeEndingInNumber() {
+        XCTAssertEqual(TonePreset.neutral.postProcess("let x = 5"), "Let x = 5")
+    }
+
+    func testNeutralDoesNotAddPeriodToBareDomain() {
+        XCTAssertEqual(TonePreset.neutral.postProcess("example.com"), "Example.com")
+    }
+
+    func testNeutralAddsPeriodWithContraction() {
+        XCTAssertEqual(TonePreset.neutral.postProcess("don't go"), "Don't go.")
+    }
+
+    func testNeutralAddsPeriodWithCurlyApostrophe() {
+        XCTAssertEqual(
+            TonePreset.neutral.postProcess("don\u{2019}t go"),
+            "Don\u{2019}t go."
+        )
+    }
+
+    func testNeutralAddsPeriodToSingleWord() {
+        XCTAssertEqual(TonePreset.neutral.postProcess("running"), "Running.")
+    }
+
     // MARK: - Capitalize first letter (neutral)
 
     func testNeutralCapitalizesFirstLetter() {

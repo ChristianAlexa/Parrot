@@ -56,6 +56,12 @@ enum TonePreset: String, CaseIterable, Identifiable {
     private static func ensureTrailingPunctuation(_ text: String) -> String {
         guard let last = text.last else { return text }
         if last.isPunctuation { return text }
+        // Only append a period to prose-like endings. Skip tokens that contain
+        // non-letter characters (URLs, paths, code, numbers) since those usually
+        // shouldn't get an automatic period tacked on.
+        let lastToken = text.split(whereSeparator: { $0.isWhitespace }).last ?? ""
+        let isWordLike = lastToken.allSatisfy { $0.isLetter || $0 == "'" || $0 == "\u{2019}" }
+        guard isWordLike else { return text }
         return text + "."
     }
 
