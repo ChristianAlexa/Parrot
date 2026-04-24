@@ -21,6 +21,20 @@ cp "$SCRIPT_DIR/README.txt" "$STAGING/README.txt"
 # Add Applications symlink for drag-to-install (works headless, unlike Finder aliases)
 ln -s /Applications "$STAGING/Applications"
 
+# In CI, skip the mount/custom-icon dance — the attach/detach flow is flaky on
+# hosted macOS runners. Produce a compressed DMG directly. The DMG is still
+# drag-to-install; it just won't have a custom volume icon.
+if [ -n "$CI" ]; then
+    rm -f "$OUTPUT_DMG"
+    hdiutil create -volname "$VOL_NAME" \
+        -srcfolder "$STAGING" \
+        -ov -format UDZO \
+        "$OUTPUT_DMG"
+    rm -rf "$STAGING"
+    echo "DMG created: $OUTPUT_DMG"
+    exit 0
+fi
+
 # Create a read-write DMG so we can set the volume icon
 TEMP_DMG="$(dirname "$OUTPUT_DMG")/temp.dmg"
 rm -f "$TEMP_DMG"
