@@ -36,15 +36,13 @@ enum CleanupPrompt {
         "Clean up the following transcript:\n<transcript>\n\(rawTranscript)\n</transcript>"
     }
 
+    static let llama3Formatter: PromptFormatter = Llama3PromptFormatter()
+
     /// Llama 3 chat-formatted prompt for local inference via llama.cpp.
     static func buildLlamaPrompt(rawTranscript: String, tone: TonePreset) -> String {
-        """
-        <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-        \(systemMessage(tone: tone))<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-        \(userMessage(rawTranscript: rawTranscript))<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-        """
+        llama3Formatter.format(
+            systemMessage: systemMessage(tone: tone),
+            userMessage: userMessage(rawTranscript: rawTranscript)
+        )
     }
 }
