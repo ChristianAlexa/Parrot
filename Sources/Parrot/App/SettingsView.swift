@@ -547,6 +547,9 @@ struct AboutTabView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 260)
 
+            Link("Check for updates on GitHub", destination: URL(string: "https://github.com/ChristianAlexa/Parrot/releases")!)
+                .font(.caption)
+
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -570,10 +573,23 @@ struct AboutTabView: View {
 struct StatsTabView: View {
     @State private var stats = DictationStats.load()
     @State private var showResetConfirmation: Bool = false
+    @AppStorage("baselineTypingWPM") private var baselineTypingWPM: Int = 60
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            GroupBox("Usage") {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("How fast do you type?")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Picker("", selection: $baselineTypingWPM) {
+                    Text("Average (60 WPM)").tag(60)
+                    Text("Fast (100 WPM)").tag(100)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+
+            GroupBox("Usage metrics") {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Spacer()
@@ -680,7 +696,7 @@ struct StatsTabView: View {
 
     private var formattedTimeSaved: String {
         guard stats.totalWords > 0 else { return "—" }
-        let typingMinutes = Double(stats.totalWords) / 40.0
+        let typingMinutes = Double(stats.totalWords) / Double(baselineTypingWPM)
         let dictationMinutes = stats.totalRecordingSeconds / 60.0
         let savedSeconds = max(0, (typingMinutes - dictationMinutes) * 60)
         if savedSeconds < 60 { return "< 1m" }
