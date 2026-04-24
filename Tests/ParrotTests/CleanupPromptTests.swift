@@ -73,4 +73,33 @@ final class CleanupPromptTests: XCTestCase {
         XCTAssertTrue(result.contains("<transcript>"))
         XCTAssertTrue(result.contains("hello world"))
     }
+
+    // MARK: - Llama3PromptFormatter
+
+    func testLlama3FormatterProducesExactChatTemplate() {
+        let formatter = Llama3PromptFormatter()
+        let result = formatter.format(systemMessage: "SYS", userMessage: "USR")
+        let expected = """
+        <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+        SYS<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+        USR<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+        """
+        XCTAssertEqual(result, expected)
+    }
+
+    func testBuildLlamaPromptDelegatesToFormatter() {
+        // Byte-identical guarantee: buildLlamaPrompt must equal the formatter
+        // applied to the same system + user messages it would have built inline.
+        let raw = "abc"
+        let tone: TonePreset = .neutral
+        let viaCleanupPrompt = CleanupPrompt.buildLlamaPrompt(rawTranscript: raw, tone: tone)
+        let viaFormatter = Llama3PromptFormatter().format(
+            systemMessage: CleanupPrompt.systemMessage(tone: tone),
+            userMessage: CleanupPrompt.userMessage(rawTranscript: raw)
+        )
+        XCTAssertEqual(viaCleanupPrompt, viaFormatter)
+    }
 }
