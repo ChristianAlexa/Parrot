@@ -10,6 +10,10 @@ struct FloatingBarView: View {
     private var isProcessing: Bool { appState.status == .processing }
     private var isError: Bool { if case .error = appState.status { return true } else { return false } }
     private var isActive: Bool { isRecording || isProcessing }
+    private var isIdle: Bool { !isActive && !showErrorFace }
+
+    private var contentWidth: CGFloat { isIdle ? 44 : 260 }
+    private var contentHeight: CGFloat { isIdle ? 16 : 36 }
 
     var body: some View {
         ZStack {
@@ -29,12 +33,16 @@ struct FloatingBarView: View {
                 }
             }
         }
-        .frame(width: isActive ? 260 : 120, height: 36)
+        .frame(width: contentWidth, height: contentHeight)
         .clipped()
         .background(
             Capsule()
                 .fill(Color.black.opacity(0.85))
-                .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+                .shadow(
+                    color: .black.opacity(isIdle ? 0.15 : 0.4),
+                    radius: isIdle ? 4 : 12,
+                    y: isIdle ? 1 : 4
+                )
         )
         .clipShape(Capsule())
         .frame(width: 260, height: 36)
@@ -52,11 +60,14 @@ struct FloatingBarView: View {
 
     // MARK: - Idle
 
-    private static let idleBars = Array(repeating: Float(0), count: 15)
-
     private var idleContent: some View {
-        waveformContent(levels: Self.idleBars, animated: false)
-            .opacity(0.7)
+        HStack(spacing: 4) {
+            ForEach(0..<3, id: \.self) { _ in
+                Circle()
+                    .fill(Color.white.opacity(0.55))
+                    .frame(width: 3, height: 3)
+            }
+        }
     }
 
     // MARK: - Waveform
