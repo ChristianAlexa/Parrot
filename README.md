@@ -33,6 +33,8 @@ To install the `.app` bundle (from a [release](../../releases) or `make release`
 3. Grant **Accessibility** and **Microphone** permissions when prompted
 4. The app appears as an icon in the **menu bar** (top-right) — it does not appear in the Dock
 
+> **Note on signing:** Parrot is distributed with an ad-hoc signature (no Apple Developer Program membership), so macOS will warn you on first open. This is expected and not a sign of malware — the source is open and the build is reproducible from this repo via `make release`.
+
 ## Usage
 
 1. The app lives in your **menu bar** (top-right, near WiFi/battery)
