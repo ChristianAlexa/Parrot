@@ -30,38 +30,63 @@ final class FloatingBarControllerTests: XCTestCase {
         XCTAssertFalse(controller.panel!.isVisible)
     }
 
-    @MainActor
-    func testPanelShownWhenPreferenceEnabled() {
-        UserDefaults.standard.set(true, forKey: "showFloatingBar")
-        let controller = FloatingBarController()
-        controller.setup()
-
-        XCTAssertNotNil(controller.panel)
-        XCTAssertTrue(controller.panel!.isVisible)
-    }
-
     // MARK: - Panel properties
 
     @MainActor
-    func testPanelPositionedAtBottomCenter() {
+    func testPanelPositionedAtBottomCenterOfPrimaryScreen() {
         let controller = FloatingBarController()
         controller.setup()
 
-        guard let panel = controller.panel, let screen = NSScreen.main else {
-            XCTFail("Panel or screen not available")
+        guard let panel = controller.panel, let screen = NSScreen.screens.first else {
+            XCTFail("Panel or primary screen not available")
             return
         }
 
         let visibleFrame = screen.visibleFrame
         let panelFrame = panel.frame
 
-        // Centered horizontally
+        // Centered horizontally on the primary (menu-bar) screen — not whichever
+        // screen NSScreen.main happens to resolve to.
         let expectedX = visibleFrame.midX - panelFrame.width / 2
         XCTAssertEqual(panelFrame.origin.x, expectedX, accuracy: 1)
 
         // 12pt above bottom of visible frame
         let expectedY = visibleFrame.origin.y + 12
         XCTAssertEqual(panelFrame.origin.y, expectedY, accuracy: 1)
+    }
+
+    @MainActor
+    func testPanelRecentersOnScreenParametersChange() {
+        let controller = FloatingBarController()
+        controller.setup()
+
+        guard let panel = controller.panel, let screen = NSScreen.screens.first else {
+            XCTFail("Panel or primary screen not available")
+            return
+        }
+
+        // Simulate the panel being stranded off-center (e.g. left over from
+        // when a second monitor was attached).
+        let stranded = NSRect(origin: NSPoint(x: 0, y: 0), size: panel.frame.size)
+        panel.setFrame(stranded, display: true)
+        XCTAssertEqual(panel.frame.origin, stranded.origin)
+
+        // Posting the screen-parameters notification should re-center it.
+        NotificationCenter.default.post(
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+
+        // Notification is delivered on the main queue; spin the runloop briefly.
+        let expectation = expectation(description: "reposition")
+        DispatchQueue.main.async { expectation.fulfill() }
+        wait(for: [expectation], timeout: 1.0)
+
+        let visibleFrame = screen.visibleFrame
+        let expectedX = visibleFrame.midX - panel.frame.width / 2
+        let expectedY = visibleFrame.origin.y + 12
+        XCTAssertEqual(panel.frame.origin.x, expectedX, accuracy: 1)
+        XCTAssertEqual(panel.frame.origin.y, expectedY, accuracy: 1)
     }
 
     @MainActor

@@ -6,6 +6,7 @@ final class FloatingBarController {
     var panel: FloatingBarPanel?
     private var hostingView: NSHostingView<FloatingBarView>?
     private var prefsObserver: NSObjectProtocol?
+    private var screenObserver: NSObjectProtocol?
 
     /// Fixed panel size — large enough for all states.
     /// SwiftUI animates the visible capsule; the window never moves.
@@ -45,6 +46,20 @@ final class FloatingBarController {
 
         observeStatus()
         observePreference()
+        observeScreenChanges()
+    }
+
+    private func observeScreenChanges() {
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, let panel = self.panel else { return }
+                self.positionPanel(panel)
+            }
+        }
     }
 
     private func observePreference() {
@@ -87,7 +102,10 @@ final class FloatingBarController {
     }
 
     private func positionPanel(_ panel: NSPanel) {
-        guard let screen = NSScreen.main else { return }
+        // Use the primary screen (the one with the menu bar) rather than
+        // NSScreen.main, which tracks the focused app's key window and can
+        // resolve to a secondary monitor.
+        guard let screen = NSScreen.screens.first else { return }
         let visibleFrame = screen.visibleFrame
         let x = visibleFrame.midX - panelSize.width / 2
         let y = visibleFrame.origin.y + 12
