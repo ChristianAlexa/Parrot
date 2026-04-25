@@ -1,7 +1,7 @@
 .PHONY: build start clean check test release tag changelog
 
 APP_NAME := Parrot
-VERSION := 0.6.6
+VERSION := 0.6.7
 BUILD_DIR := .build/arm64-apple-macosx/release
 RELEASE_DIR := .build/release-app
 APP_BUNDLE := $(RELEASE_DIR)/$(APP_NAME).app
