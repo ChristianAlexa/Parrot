@@ -21,6 +21,20 @@ final class AudioDeviceManager {
         }
     }
 
+    /// The UID to surface in the picker. Returns nil ("Auto") when the
+    /// persisted selection points at a device that isn't currently available
+    /// — the persisted preference itself is preserved so reconnecting the
+    /// device automatically restores the user's choice.
+    var displayedDeviceUID: String? {
+        get {
+            guard let uid = selectedDeviceUID,
+                  availableDevices.contains(where: { $0.uid == uid })
+            else { return nil }
+            return uid
+        }
+        set { selectedDeviceUID = newValue }
+    }
+
     /// Resolves the selected UID to an AudioDeviceID, or nil for system default
     var effectiveDeviceID: AudioDeviceID? {
         setupIfNeeded()

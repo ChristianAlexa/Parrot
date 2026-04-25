@@ -233,7 +233,7 @@ struct RecordTabView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
 
-                    Picker("Microphone", selection: $deviceManager.selectedDeviceUID) {
+                    Picker("Microphone", selection: $deviceManager.displayedDeviceUID) {
                         Text("Auto (\(deviceManager.availableDevices.first(where: { $0.isDefault })?.name ?? "System Default"))")
                             .tag(nil as String?)
                         Divider()
