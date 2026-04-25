@@ -47,7 +47,7 @@ To install the `.app` bundle (from a [release](../../releases) or `make release`
 | Command | Description |
 |---|---|
 | `make start` | Build and run (debug) |
-| `make release` | Build `.app` bundle + zip for distribution |
+| `make release` | Build `.app` bundle + DMG installer for distribution |
 | `make build` | Build only |
 | `make clean` | Clean build artifacts |
 
