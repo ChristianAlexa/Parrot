@@ -365,7 +365,10 @@ final class TranscriptionPipeline {
             do {
                 let rawTranscript = try await whisperManager.transcribe(samples: samples, initialPrompt: whisperPrompt)
 
-                logger.info("Raw transcript: \(rawTranscript)")
+                // Use .debug so transcript text is NOT persisted to the macOS
+                // unified log on disk. The ActivityLog write below is the
+                // user-visible, opt-in surface for this content.
+                logger.debug("Raw transcript: \(rawTranscript)")
                 ActivityLog.shared.log(.info, category: "Pipeline", message: "Raw transcript: \(rawTranscript)")
 
                 guard !Task.isCancelled else {
