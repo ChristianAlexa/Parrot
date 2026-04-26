@@ -15,6 +15,23 @@ enum KeyCodeNames {
         63, // Function (fn)
     ]
 
+    /// Maps a modifier-only key code to the CGEventFlags mask it sets when held.
+    /// Returns nil for non-modifier keys and for modifiers without a unique flag (Caps Lock).
+    static func modifierFlag(for keyCode: UInt16) -> CGEventFlags? {
+        switch keyCode {
+        case 54, 55: return .maskCommand          // Right/Left Command
+        case 56, 60: return .maskShift            // Left/Right Shift
+        case 58, 61: return .maskAlternate        // Left/Right Option
+        case 59, 62: return .maskControl          // Left/Right Control
+        case 63:     return .maskSecondaryFn      // fn
+        default:     return nil
+        }
+    }
+
+    /// All distinct modifier flags considered when matching hotkeys.
+    static let allModifierFlags: CGEventFlags =
+        [.maskShift, .maskControl, .maskAlternate, .maskCommand, .maskSecondaryFn]
+
     static func displayName(for keyCode: UInt16) -> String {
         keyCodeMap[keyCode] ?? "Key \(keyCode)"
     }

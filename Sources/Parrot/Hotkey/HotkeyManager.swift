@@ -174,11 +174,13 @@ final class HotkeyManager {
         let requiredFlags = CGEventFlags(rawValue: UInt64(hotkeyModifiers))
 
         if isModifierOnly {
-            // Modifier-only hotkey (e.g. Right Option)
-            if eventType == .flagsChanged && keyCode == hotkeyKeyCode {
-                let flags = event.flags
-                let modDown = flags.contains(.maskAlternate) || flags.contains(.maskCommand)
-                    || flags.contains(.maskShift) || flags.contains(.maskControl)
+            // Modifier-only hotkey (e.g. Right Option). Require an exact-match of the
+            // configured modifier's flag — holding extras like Cmd or Shift must NOT
+            // count as the hotkey being down, or any modifier press would false-trigger.
+            if eventType == .flagsChanged && keyCode == hotkeyKeyCode,
+               let requiredFlag = KeyCodeNames.modifierFlag(for: hotkeyKeyCode) {
+                let relevant = event.flags.intersection(KeyCodeNames.allModifierFlags)
+                let modDown = relevant == requiredFlag
 
                 if modDown && !isHolding {
                     isHolding = true

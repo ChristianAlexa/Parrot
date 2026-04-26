@@ -63,7 +63,7 @@ struct MenuBarContentView: View {
                 Spacer()
 
                 // Quit
-                Button { _exit(0) } label: {
+                Button { NSApp.terminate(nil) } label: {
                     VStack(spacing: 3) {
                         Image(systemName: "power")
                             .font(.system(size: 16))
@@ -166,6 +166,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         observeSettingsChanges()
         observeTranscriptionCompleted()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        textInjector.flushPendingRestore()
     }
 
     private func observeTranscriptionCompleted() {

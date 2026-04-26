@@ -98,7 +98,7 @@ struct SetupFlowView: View {
             // Quit button
             Divider()
                 .padding(.horizontal, 12)
-            Button { _exit(0) } label: {
+            Button { NSApp.terminate(nil) } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "power")
                         .font(.system(size: 10))
@@ -372,6 +372,10 @@ struct SetupFlowView: View {
         task.arguments = ["-n", url.path]
         try? task.run()
         task.waitUntilExit()
+        // Use _exit(0) here, not NSApp.terminate(nil): the new instance is already
+        // spawning via `open -n`, and running the full AppDelegate teardown could
+        // race the new instance's startup. Quit buttons elsewhere use NSApp.terminate
+        // because they need applicationWillTerminate to flush the clipboard restore.
         _exit(0)
     }
 
