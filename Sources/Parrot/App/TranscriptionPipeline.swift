@@ -45,6 +45,19 @@ final class TranscriptionPipeline {
         return tone.postProcess(text)
     }
 
+    private static func audioFeedbackEnabled() -> Bool {
+        // Default true matches the SettingsTabView @AppStorage default; UserDefaults
+        // returns false for an unset bool, which would silently mute first-run users.
+        UserDefaults.standard.object(forKey: DefaultsKey.audioFeedbackEnabled) as? Bool ?? true
+    }
+
+    private static func playSound(_ name: String, volume: Float? = nil) {
+        guard audioFeedbackEnabled() else { return }
+        let sound = NSSound(named: name)
+        if let volume { sound?.volume = volume }
+        sound?.play()
+    }
+
     init() {
         testStartObserver = NotificationCenter.default.addObserver(
             forName: .testRecordingStarted,
@@ -178,7 +191,7 @@ final class TranscriptionPipeline {
         case .recording, .processing:
             logger.warning("Recording attempted while status is \(String(describing: sharedAppState.status)) — ignoring")
             ActivityLog.shared.log(.warning, category: "Pipeline", message: "Recording attempted while status is \(String(describing: sharedAppState.status)) — ignoring")
-            NSSound(named: "Tink")?.play()
+            Self.playSound("Tink")
             return
         }
 
@@ -194,7 +207,7 @@ final class TranscriptionPipeline {
         isReloading = true
         sharedAppState.status = .processing
         sharedAppState.modelLoadingProgress = "Reloading models..."
-        NSSound(named: "Tink")?.play()
+        Self.playSound("Tink")
         loadModels()
 
         recordingTask = Task {
@@ -236,7 +249,7 @@ final class TranscriptionPipeline {
             do {
                 let deviceID = sharedAudioDeviceManager.effectiveDeviceID
                 try await audioCaptureManager.startCapture(deviceID: deviceID)
-                NSSound(named: "Pop")?.play()
+                Self.playSound("Pop")
 
                 // If stop was requested while we were starting the engine, process now
                 if stopRequested {
@@ -394,9 +407,7 @@ final class TranscriptionPipeline {
                     let duration = Double(samples.count) / 16000.0
                     DictationStats.record(wordCount: wordCount, durationSeconds: duration, tonePreset: tone.rawValue)
 
-                    let glass = NSSound(named: "Glass")
-                    glass?.volume = 0.2
-                    glass?.play()
+                    Self.playSound("Glass", volume: 0.2)
                 }
                 sharedAppState.status = .idle
 
@@ -417,7 +428,7 @@ final class TranscriptionPipeline {
         logger.warning("Recording rejected (samples: \(samples.count)) — \(reason)")
         ActivityLog.shared.log(.warning, category: "Pipeline", message: "Recording rejected (samples: \(samples.count)) — \(reason)")
         sharedAppState.status = .error(reason)
-        NSSound(named: "Basso")?.play()
+        Self.playSound("Basso")
         NotificationCenter.default.post(
             name: .transcriptionFailed,
             object: nil,
