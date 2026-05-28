@@ -33,7 +33,7 @@ To install the `.app` bundle (from a [release](../../releases) or `make release`
 3. Grant **Accessibility** and **Microphone** permissions when prompted
 4. The app appears as an icon in the **menu bar** (top-right) — it does not appear in the Dock
 
-> **Note on signing:** Parrot is distributed with an ad-hoc signature (no Apple Developer Program membership), so macOS will warn you on first open. This is expected and not a sign of malware — the source is open and the build is reproducible from this repo via `make release`.
+> **Note on signing:** Parrot is distributed with an ad-hoc signature (no Apple Developer Program membership), so macOS will warn you on first open. This is expected and not a sign of malware — the source is open and the app is buildable from source via `make release`.
 
 ## Usage
 
@@ -137,4 +137,9 @@ Parrot runs entirely on your device. See [PRIVACY.md](PRIVACY.md) for the full p
 
 ## License
 
-[Apache License 2.0](LICENSE)
+Parrot is licensed under the [Apache License 2.0](LICENSE).
+
+- [NOTICE](NOTICE) — attribution for bundled third-party code.
+- [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md) — full breakdown of bundled frameworks and downloadable model licenses.
+
+Parrot is provided **as is, without warranty of any kind**. You are responsible for the models you download, your compliance with their licenses, and how you use the transcribed output.

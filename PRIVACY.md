@@ -41,4 +41,4 @@ Parrot does not integrate with any third-party services. Model downloads are fet
 
 ## Contact
 
-If you have questions about this privacy policy, please open an issue on the [GitHub repository](https://github.com/christianalexa/parrot).
+If you have questions about this privacy policy, please open an issue on the [GitHub repository](https://github.com/ChristianAlexa/Parrot).
