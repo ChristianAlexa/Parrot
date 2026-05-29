@@ -18,16 +18,16 @@ enum CleanupPrompt {
             - Output ONLY the cleaned text, nothing else
             """
         if let toneInstruction = tone.instruction {
-            message += "\n        - \(toneInstruction)"
+            message += "\n- \(toneInstruction)"
         }
         for rule in CleanupRule.alwaysOnRules {
-            message += "\n        - \(rule.instruction)"
+            message += "\n- \(rule.instruction)"
         }
         for rule in CleanupRule.enabledRules {
-            message += "\n        - \(rule.instruction)"
+            message += "\n- \(rule.instruction)"
         }
         if let hint = PersonalDictionary.cleanupHint() {
-            message += "\n        - \(hint)"
+            message += "\n- \(hint)"
         }
         return message
     }
