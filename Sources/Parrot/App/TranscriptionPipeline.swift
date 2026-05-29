@@ -355,7 +355,10 @@ final class TranscriptionPipeline {
         processingTask?.cancel()
 
         let isTest = isTestMode
-        let llmEnabled = UserDefaults.standard.bool(forKey: DefaultsKey.llmCleanupEnabled)
+        // Default true matches the OutputStyleView @AppStorage default; UserDefaults
+        // returns false for an unset bool, which would silently disable cleanup for
+        // first-run users even though the toggle shows ON (see audioFeedbackEnabled).
+        let llmEnabled = UserDefaults.standard.object(forKey: DefaultsKey.llmCleanupEnabled) as? Bool ?? true
         let tone = TonePreset.current
         let whisperPrompt = PersonalDictionary.whisperPrompt()
 
